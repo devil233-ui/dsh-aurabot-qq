@@ -13,20 +13,20 @@ const GROUP = { kind: 'group', chatId: 'group:100200300', groupId: '100200300', 
 const OTHER_GROUP = { kind: 'group', chatId: 'group:200300400', groupId: '200300400' }
 const cfgWith = (group) => normalize({ ownerQQ: '10001', allow: { groups: ['100200300', '200300400'] }, group })
 
-test('groupOwnerTools：默认关，群聊才有效，私聊一律 off', () => {
-  assert.equal(groupOwnerTools(normalize({}), GROUP), 'off')
-  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'owner' }), GROUP), 'owner')
-  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'all' }), GROUP), 'off', 'all 模式已移除，写 all 一律按 off')
-  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'owner' }), { kind: 'private', userId: '10001' }), 'off')
-  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'owner' }), { kind: 'system', system: 'autotelic' }), 'off')
+test('groupOwnerTools：只有开与关两档，写 all 或乱写都按 off', () => {
+  assert.equal(groupOwnerTools(normalize({})), 'off')
+  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'owner' })), 'owner')
+  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'all' })), 'off', 'all 模式已移除，写 all 一律按 off')
+  assert.equal(groupOwnerTools(cfgWith({ ownerTools: 'yes' })), 'off')
 })
 
-test('groupOwnerTools：ownerToolsGroups 非空时只对列出的群生效', () => {
-  const cfg = cfgWith({ ownerTools: 'owner', ownerToolsGroups: ['100200300'] })
-  assert.equal(groupOwnerTools(cfg, GROUP), 'owner')
-  assert.equal(groupOwnerTools(cfg, OTHER_GROUP), 'off')
-  const all = cfgWith({ ownerTools: 'all', ownerToolsGroups: [] })
-  assert.equal(groupOwnerTools(all, OTHER_GROUP), 'off', 'all 模式已移除')
+test('开关对所有群一起生效：不按群单独设置', () => {
+  const on = cfgWith({ ownerTools: 'owner' })
+  assert.equal(levelFor(on, GROUP), 'group-full')
+  assert.equal(levelFor(on, OTHER_GROUP), 'group-full', '开就是所有群都开，没有按群白名单')
+  const off = cfgWith({ ownerTools: 'off' })
+  assert.equal(levelFor(off, GROUP), 'social')
+  assert.equal(levelFor(off, OTHER_GROUP), 'social')
 })
 
 test('levelFor：开了本机工具的群给 group-full，其余群仍旧 social', () => {
@@ -46,13 +46,13 @@ test('presetFor：group-full 走专用 preset，不能落到 private', () => {
 
 test('配置归一化：默认 off，非法值回落 off，群号列表收成数组', () => {
   assert.equal(DEFAULTS.group.ownerTools, 'off')
-  assert.deepEqual(DEFAULTS.group.ownerToolsGroups, [])
+  assert.ok(!('ownerToolsGroups' in DEFAULTS.group), '不再有按群白名单这一项')
   assert.equal(normalize({}).group.ownerTools, 'off')
   assert.equal(normalize({ group: { ownerTools: 'owner' } }).group.ownerTools, 'owner')
   assert.equal(normalize({ group: { ownerTools: 'yes' } }).group.ownerTools, 'off')
   assert.equal(normalize({ group: { ownerTools: true } }).group.ownerTools, 'off')
   assert.equal(normalize({ group: { ownerTools: 'all' } }).group.ownerTools, 'off', 'all 模式必须归一到 off')
-  assert.deepEqual(normalize({ group: { ownerToolsGroups: '100200300, 200300400' } }).group.ownerToolsGroups, ['100200300', '200300400'])
+  assert.ok(!('ownerToolsGroups' in normalize({ group: { ownerToolsGroups: '100200300' } }).group), '旧配置里的白名单读进来就被丢掉')
 })
 
 test('人格：group-owner 承认手里有工具，social 仍然明说没有', () => {
@@ -104,7 +104,7 @@ test('接线契约：preset、人格变量、闸门、面板开关都在', () =>
   const client = read('client/client.js')
   assert.ok(client.includes("f.choices('group.ownerTools'"), '面板缺 group.ownerTools 选择')
   assert.ok(!/group\.ownerTools'[^)]*value: 'all'/.test(client), '面板不得再提供 all 档')
-  assert.ok(client.includes("f.list('group.ownerToolsGroups'"), '面板缺 ownerToolsGroups 列表')
+  assert.ok(!client.includes("group.ownerToolsGroups"), '面板不该再有「只在这些群生效」这一项')
 })
 
 test('闸门：群里非主人说话时本机工具被收走', async () => {

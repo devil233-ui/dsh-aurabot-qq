@@ -28,16 +28,12 @@ export function checkAllowed(cfg, msg) {
 export const GROUP_OWNER_TOOLS = ['off', 'owner']
 
 /**
- * 这个群当前该给哪一档。ownerToolsGroups 非空时只在列出的群里生效（留空 = 所有群）。
+ * 这个群当前该给哪一档：只要开关开着，所有群都按「主人说话那一轮给」走。
  * @returns {'off'|'owner'}
  */
-export function groupOwnerTools(cfg, chat) {
-  if (!chat || chat.kind !== 'group') return 'off'
+export function groupOwnerTools(cfg) {
   const mode = cfg?.group?.ownerTools
-  if (mode !== 'owner') return 'off'
-  const list = (cfg?.group?.ownerToolsGroups || []).map(String).filter(Boolean)
-  if (list.length && !list.includes(String(chat.groupId || ''))) return 'off'
-  return mode
+  return mode === 'owner' ? 'owner' : 'off'
 }
 
 /** 这个会话用哪一档权限。群聊默认不超过 social，除非主人给这个群开了本机工具。 */
@@ -48,7 +44,7 @@ export function levelFor(cfg, chat) {
   }
   // group-full 不叫 full：插件自己的工具还要按 social 语义挂（模块里到处是 level === 'full' 判主人私聊），
   // 真正的开关由 hub 按这一轮说话的人做（tools.restrict 收走核心工具）。
-  if (chat.kind === 'group' && groupOwnerTools(cfg, chat) !== 'off') return 'group-full'
+  if (chat.kind === 'group' && groupOwnerTools(cfg) !== 'off') return 'group-full'
   return 'social'
 }
 

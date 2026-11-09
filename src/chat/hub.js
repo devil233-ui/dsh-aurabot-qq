@@ -14,7 +14,7 @@ import { isDefiniteFailure } from '../onebot/client.js'
 import { parseMessageEvent, gifFrames, segmentsOf } from './inbound.js'
 import { parseReply, bubbleDelay, wantsVoice, cleanOutboundText, cleanOutboundSegments } from './reply.js'
 import { decideGroupReply, engagedHint, pickAutoReply, policyFor, sameNameNote, topicRelevance } from './group-policy.js'
-import { checkAllowed, levelFor, presetFor, isOwner, groupOwnerTools } from './access.js'
+import { checkAllowed, levelFor, presetFor, isOwner } from './access.js'
 import { fetchImage, segmentBytes } from '../core/net.js'
 import { toMono16k } from '../voice/wav.js'
 import { asrConfigured, transcribeAudio } from '../voice/asr.js'
@@ -607,7 +607,7 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
   function presetForChat(chat, level) {
     const cfg = getConfig()
     const wanted = chat.noTools ? '' : String(chat.presetId || '').trim()
-    return wanted && cfg.ext?.autotelic?.presetIdOverride ? wanted : presetFor(level, cfg, chat)
+    return wanted && cfg.ext?.autotelic?.presetIdOverride ? wanted : presetFor(level, cfg)
   }
 
   const systemChatId = (name, scope = '') => {
