@@ -79,6 +79,15 @@ export function isOwner(cfg, userId) {
   return String(userId || '') !== '' && String(userId) === String(cfg.ownerQQ || '')
 }
 
+/**
+ * 拿到「本机工具」授权的人：群里他开口那一轮，工具闸按主人算（capabilityAllow.tools）。
+ * 只管工具闸这一件事——记忆、表情库、群管这些主人专属动作仍然只认 isOwner。
+ */
+export function toolsGranted(cfg, userId) {
+  const id = String(userId || '')
+  return id !== '' && (cfg.capabilityAllow?.tools || []).map(String).includes(id)
+}
+
 /** 授权名单只作用于已获准聊天的私聊对象。 */
 export function privateCapabilityAllowed(cfg, chat, capability) {
   if (chat?.kind !== 'private') return false

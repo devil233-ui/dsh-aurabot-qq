@@ -34,6 +34,19 @@ test('owner can inspect and change independent permissions without implicitly gr
   assert.match(x.call('添加 私聊 123abc456'), /完整的数字|完整的 QQ 号/)
 })
 
+test('本机工具名单：群里直接生效，不要求私聊白名单，也不报「暂不生效」', () => {
+  const x = setup()
+  const out = x.call('授权 20002 工具')
+  assert.match(out, /已添加 本机工具/)
+  assert.doesNotMatch(out, /暂不生效/, '工具授权不看私聊白名单')
+  assert.deepEqual(x.config().capabilityAllow.tools, ['20002'])
+  assert.deepEqual(x.config().allow.private, [], '不该顺手把私聊打开')
+  assert.match(x.call('20002'), /本机工具/)
+  assert.match(x.call('列表 工具'), /20002/)
+  assert.match(x.call('撤销 20002 工具'), /已移除/)
+  assert.deepEqual(x.config().capabilityAllow.tools, [])
+})
+
 test('permission administration is reserved for the owner private chat', async () => {
   const x = setup()
   assert.match(x.call('添加 私聊 10000002', guest), /主人私聊/)

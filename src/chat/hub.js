@@ -18,7 +18,7 @@ import { isDefiniteFailure } from '../onebot/client.js'
 import { parseMessageEvent, gifFrames, segmentsOf } from './inbound.js'
 import { parseReply, bubbleDelay, wantsVoice, itemsToLine, cleanOutboundText, cleanOutboundSegments, capOutboundSegments, clockLabel, tidyPunctuation, stripAcpLeak, hasSuspectTagShape } from './reply.js'
 import { decideGroupReply, engagedHint, pickAutoReply, pickDirectRequester, policyFor, sameNameNote, topicRelevance } from './group-policy.js'
-import { checkAllowed, groupResponseMode, shouldObserveGroup, levelFor, presetFor, isOwner, groupOwnerTools } from './access.js'
+import { checkAllowed, groupResponseMode, shouldObserveGroup, levelFor, presetFor, isOwner, toolsGranted, groupOwnerTools } from './access.js'
 import { fetchImage, segmentBytes } from '../core/net.js'
 import { toMono16k } from '../voice/wav.js'
 import { asrConfigured, transcribeAudio } from '../voice/asr.js'
@@ -3608,10 +3608,10 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     }
     if (senderId) addSender(senderId)
     for (const s of opts.extraSenders || []) addSender(s)
-    // 群聊本机工具按「这一轮说话的人」开合：全是主人就放开，掺了别人就收回去。
+    // 群聊本机工具按「这一轮说话的人」开合：全是主人（或拿到了本机工具授权的人）就放开，掺了别人就收回去。
     // 必须把本轮这份 st 递进去：turnState.set(key, st) 在下面，这之前 map 里还没有这一轮，
     // 让判定自己去查会读到上一轮（新会话则是空），首条消息就被锁成「不是主人」。
-    if (chat.kind === 'group') applyGroupGate(key, turnSendersAllOwner(sessionId, st))
+    if (chat.kind === 'group') applyGroupGate(key, turnSendersAllTools(sessionId, st))
     else if (chat.kind === 'private') {
       // 她的主动申请优先于「用户消息里有没有工具词」：申请过这一轮就放开。
       const asked = takeToolRequest(chat.chatId)
@@ -4018,6 +4018,18 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     return [...st.senders].every((u) => isOwner(getConfig(), u))
   }
 
+  /**
+   * 工具闸专用判定：主人，或拿到「本机工具」授权的成员（capabilityAllow.tools）。
+   * 只替换群聊工具闸那一处；记忆、表情库、生图这些主人专属动作仍走 turnSendersAllOwner。
+   */
+  function turnSendersAllTools(sessionId, state) {
+    const st = state || turnState.get(sessionKey(sessionId))
+    if (st && st.directOwner) return true // 主人在 DSH 面板里直接打字
+    if (!st || !st.senders.size) return ownerPrivateChat(sessionId)
+    const cfg = getConfig()
+    return [...st.senders].every((u) => isOwner(cfg, u) || toolsGranted(cfg, u))
+  }
+
   /** 生图的群聊例外：主人是本轮唯一明确 @ / 引用回复的请求者。 */
   function turnDirectFromOwner(sessionId) {
     const st = turnState.get(sessionKey(sessionId))
@@ -4406,6 +4418,7 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     runSubagentTurn,
     subagentFor,
     turnSendersAllOwner,
+    turnSendersAllTools,
     turnDirectFromOwner,
     // 这个聊天的回合（模型/工具阶段）是否正在进行。出站治理用它区分「她回合内的画前提示」
     // 与「模块主动发言」：前者是对话的一部分，直发不经代发决断，否则会与最终回复重复（2026-11-18）。

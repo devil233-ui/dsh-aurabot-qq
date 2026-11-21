@@ -4,6 +4,7 @@ const CAPABILITIES = {
   image: { label: '生图', description: '允许通过聊天请求画图，可能消耗生图额度' },
   song: { label: '点歌', description: '允许通过聊天请求翻唱' },
   video: { label: '视频', description: '允许通过聊天请求生成视频' },
+  tools: { label: '本机工具', description: '在群里也让她用本机工具：他说话那一轮等于主人开口。记忆、表情库、群管等主人专属动作不在此列' },
 }
 
 export function privatePermissionCatalog(commands) {

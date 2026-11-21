@@ -7,7 +7,7 @@ const HELP = [
   '/权限 授权 QQ号 私聊 生图 reset  一次授予多项权限',
   '/权限 撤销 QQ号 reset model  一次撤销多项权限',
   '/权限 命令  查看可授权命令',
-  '/权限 列表 私聊|群|生图|点歌|视频  查看名单',
+  '/权限 列表 私聊|群|生图|点歌|视频|工具  查看名单',
   '/权限 添加|移除 群 群号  管理群白名单',
   '/权限 档位  查看资料和社交操作的全局档位',
   '关闭私聊会暂停其余授权，重新开启即可恢复。',
@@ -15,6 +15,7 @@ const HELP = [
 
 const NAMES = new Map(Object.entries({
   私聊: 'chat', private: 'chat', 生图: 'image', 点歌: 'song', 视频: 'video',
+  工具: 'tools', tools: 'tools', 本机工具: 'tools',
   重开: 'reset', 模型: 'model', 思考: 'effort',
 }))
 
@@ -76,6 +77,8 @@ export function runPermissionsCommand(arg, msg, { getConfig, setConfig, extraCom
   if (!result.ok) return result.message
   setConfig(result.config)
   const names = kind === 'group' ? '群白名单' : [...new Set(keys)].map(labelOf).join('、')
-  const paused = kind === 'private' && !hasId(result.config.allow?.private, id)
+  // 「本机工具」不看私聊白名单（群里直接生效），只有别的授权才会因为没开放私聊而暂停
+  const needsPrivate = [...new Set(keys)].some((key) => key !== 'tools')
+  const paused = kind === 'private' && needsPrivate && !hasId(result.config.allow?.private, id)
   return `${id} 已${add ? '添加' : '移除'} ${names}。${paused ? '\n该用户未获准私聊，其余授权暂不生效。' : ''}`
 }

@@ -4,8 +4,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { groupOwnerTools, levelFor, presetFor } from '../src/chat/access.js'
+import { groupOwnerTools, levelFor, presetFor, toolsGranted } from '../src/chat/access.js'
 import { normalize, DEFAULTS } from '../src/core/config.js'
+import { privatePermissionCatalog } from '../src/chat/permission-policy.js'
 import { rulesText } from '../src/persona/personas.js'
 
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8')
@@ -78,7 +79,7 @@ test('接线契约：preset、人格变量、闸门、面板开关都在', () =>
   assert.ok(host.includes("rulesText('group-owner'"), 'host 没把 group-owner 传给 rulesText')
 
   const hub = read('src/chat/hub.js')
-  assert.ok(hub.includes('applyGroupGate(key, turnSendersAllOwner(sessionId, st))'), 'pushToSession 没按发言人开合')
+  assert.ok(hub.includes('applyGroupGate(key, turnSendersAllTools(sessionId, st))'), 'pushToSession 没按发言人开合')
   assert.ok(hub.includes('const GROUP_GUEST_SAFE'), '非主人那一轮要有能力白名单')
   assert.ok(hub.includes('restrict({ allow })'), '闸门要用 allow 白名单收工具')
   assert.ok(hub.includes('knownGlobalNames(agent)'), '要按宿主真实工具名裁剪白名单')
@@ -140,31 +141,57 @@ test('闸门：群里非主人说话时本机工具被收走', async () => {
   assert.equal(hub.turnSendersAllOwner(sid), false, '只有别人时收紧')
 })
 
-test('工具闸：新会话第一条消息就按说话人判定（首轮不再被锁成「不是主人」）', async () => {
+test('本机工具白名单：归一化保留名单、面板目录里有这个开关', () => {
+  assert.deepEqual(normalize({}).capabilityAllow.tools, [], '默认名单必须是空数组')
+  assert.deepEqual(normalize({ capabilityAllow: { tools: [' 20002 ', 'abc', '20002'] } }).capabilityAllow.tools, ['20002'],
+    '只要合法的 QQ 号，去重、去空格')
+  assert.equal(toolsGranted(normalize({ capabilityAllow: { tools: ['20002'] } }), '20002'), true)
+  assert.equal(toolsGranted(normalize({ capabilityAllow: { tools: ['20002'] } }), '30003'), false)
+  assert.equal(toolsGranted(normalize({ capabilityAllow: { tools: ['20002'] } }), ''), false, '空 QQ 号不算授权')
+  assert.ok(privatePermissionCatalog([]).some(({ key }) => key === 'tools'), '面板目录缺「本机工具」这一项')
+  assert.equal(DEFAULTS.group.ownerTools, 'off', '授权名单不能顺手把群里的工具档打开')
+})
+
+test('工具闸：白名单成员单独说话按主人算，混进别人就收紧，但不等于主人特权', async () => {
   const { mkdtempSync } = await import('node:fs')
   const { tmpdir } = await import('node:os')
   const { join } = await import('node:path')
-  process.env.AURABOT_WORKSPACE = mkdtempSync(join(tmpdir(), 'aurabot-group-tools-first-'))
+  process.env.AURABOT_WORKSPACE = mkdtempSync(join(tmpdir(), 'aurabot-group-tools-grant-'))
   const { createFakeDsh } = await import('./helpers/fake-dsh.js')
   const { createHub } = await import('../src/chat/hub.js')
 
   const OWNER = '10001'
+  const GRANTED = '20002'
   const OTHER = '30003'
   const G = '100200300'
-  const cfg = normalize({ ownerQQ: OWNER, allow: { groups: [G] }, longTasks: false, group: { ownerTools: 'owner' } })
-  const chat = { kind: 'group', chatId: `group:${G}`, groupId: G, userId: OWNER, nickname: '主人' }
-  const build = () => {
-    const fake = createFakeDsh({ brain: () => '好' })
-    const log = { info () {}, warn () {}, debug () {}, error () {} }
-    const hub = createHub({ dsh: fake.ctx, getConfig: () => cfg, log, onebot: { call: async () => ({}) }, buildTools: () => [] })
-    return { fake, hub }
-  }
+  const cfg = normalize({
+    ownerQQ: OWNER, allow: { groups: [G] }, longTasks: false,
+    group: { ownerTools: 'owner' }, capabilityAllow: { tools: [GRANTED] },
+  })
+  const fake = createFakeDsh({ brain: () => '好' })
+  const log = { info () {}, warn () {}, debug () {}, error () {} }
+  const hub = createHub({ dsh: fake.ctx, getConfig: () => cfg, log, onebot: { call: async () => ({}) }, buildTools: () => [] })
+  const chat = { kind: 'group', chatId: `group:${G}`, groupId: G, userId: GRANTED, nickname: '授权的人' }
 
-  const first = build()
-  await first.hub.pushToSession(chat, [{ type: 'text', text: 'pwd' }], OWNER, { queryText: 'pwd' })
-  assert.equal(first.fake.agents.get([...first.fake.agents.keys()].pop())?.guestLocked, 0, '主人说第一句就该有工具')
+  // 新会话的第一轮闸门还没登记（mount 在首轮之后才锁），先发一条把会话建起来，再看第二轮的收放
+  await hub.pushToSession(chat, [{ type: 'text', text: '你好' }], GRANTED, { queryText: '你好' })
+  await hub.pushToSession(chat, [{ type: 'text', text: '跑个 pwd' }], GRANTED, { queryText: '跑个 pwd' })
+  const agent = fake.agents.get([...fake.agents.keys()].pop())
+  assert.ok(agent, '群会话没建起来')
+  assert.equal(agent.guestLocked, 0, '白名单成员那一轮工具必须放开，不能走 allow: []')
 
-  const second = build()
-  await second.hub.pushToSession({ ...chat, userId: OTHER, nickname: '路人' }, [{ type: 'text', text: 'pwd' }], OTHER, { queryText: 'pwd' })
-  assert.equal(second.fake.agents.get([...second.fake.agents.keys()].pop())?.guestLocked, 1, '陌生人的第一句必须照旧锁住')
+  const sid = [...fake.agents.keys()].pop()
+  hub.simulateTurn(sid, [GRANTED])
+  assert.equal(hub.turnSendersAllTools(sid), true, '只有白名单成员说话时工具闸放开')
+  assert.equal(hub.turnSendersAllOwner(sid), false, '记忆、表情库这些主人专属判定不能跟着放开')
+
+  hub.simulateTurn(sid, [GRANTED, OTHER])
+  assert.equal(hub.turnSendersAllTools(sid), false, '掺了没授权的人就收紧')
+
+  hub.simulateTurn(sid, [OWNER])
+  assert.equal(hub.turnSendersAllTools(sid), true, '主人自己说话照旧')
+
+  cfg.capabilityAllow.tools.length = 0
+  hub.simulateTurn(sid, [GRANTED])
+  assert.equal(hub.turnSendersAllTools(sid), false, '名单清空后回到今天的行为')
 })

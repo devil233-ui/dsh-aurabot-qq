@@ -548,7 +548,7 @@ export function normalize(raw) {
   c.chatModels = normalizeChatModels(c.chatModels)
   c.chatEfforts = normalizeChatEfforts(c.chatEfforts)
   c.profilePerms = Object.fromEntries(PROFILE_PERM_KEYS.map((k) => [k, PROFILE_PERM_LEVELS.includes(c.profilePerms?.[k]) ? c.profilePerms[k] : profilePermDefault(k)]))
-  c.capabilityAllow = Object.fromEntries(['image', 'song', 'video'].map((key) => {
+  c.capabilityAllow = Object.fromEntries(['image', 'song', 'video', 'tools'].map((key) => {
     const ids = Array.isArray(c.capabilityAllow?.[key]) ? c.capabilityAllow[key] : []
     return [key, [...new Set(ids.map(String).map((id) => id.trim()).filter((id) => /^\d{5,}$/.test(id)))]]
   }))
