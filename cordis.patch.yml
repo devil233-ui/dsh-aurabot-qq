@@ -272,6 +272,12 @@
             config:
               fetch: true
               searchTimeoutMs: 60000
+          # 群会话也要有私聊那套定时能力：工具集与 preset-aurabot-private-long 对齐，
+          # 开不开由群闸按「这一轮谁在说话」收放（非主人轮只留 GROUP_GUEST_SAFE）。
+          - id: tool-schedule
+            name: '@deepseek-ai/dsh-tool-schedule'
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
     # 自驱引擎专用：她自己的后台会话（system:autotelic*）用（docs/AUTOTELIC-PLAN.md §3 P0.1）。
     # 必须插在 preset-aurabot-social 之后：test/subagent-delegation.test.js 从 subagent 切到
     # 第一个 social，插前面会打挂那条切片断言。首期不给 bash / pwsh（lethal trifecta，§4.7 选 A）：
