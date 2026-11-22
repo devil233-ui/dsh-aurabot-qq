@@ -2714,6 +2714,7 @@ body[data-ds-dark-theme] .ab-root,.ab-root.ab-dark{--ab-shadow:0 1px 2px rgba(0,
           draft.group.ownerTools && draft.group.ownerTools !== 'off'
             ? h(Row, { key: 'og2', label: '工具只在这些群生效', hint: '一行一个群号；留空 = 白名单里所有群都生效' }, f.list('group.ownerToolsGroups', { placeholder: '100200300' }))
             : null,
+          h(Row, { key: 'ta', label: '定时任务那一轮也算主人', hint: '默认关：群里到点跑定时任务时，工具档位沿用最后一条 QQ 消息留下的状态，群友说过话就没有工具。打开后这类「没有任何人说话」的轮次一律按主人在场算，群上下文和工具可以兼得；代价是她在群里自己发起的轮次也带着主人权限。' }, f.sw('group.timerAsOwner')),
           h(Row, { key: 'cr', label: '能不能看别的群', hint: '只读白名单里的群，一次最多 50 条，主人随时能看。开到「群里也行」后，ta在 A 群的回答全群都看得到；读到的内容也会留在这个会话里。' }, f.choices('group.crossRead', [{ value: 'off', label: '关', desc: '只看当前聊天' }, { value: 'private', label: '私聊可以', desc: '主人，以及私聊里问的人本身在那个群（默认）' }, { value: 'group', label: '群里也行', desc: '再加上群里问的人都在那个群' }])),
           h(Row, { key: 'ol', label: '每个群给几条摘要', hint: '越少越省上下文；最多 30 条' }, f.range('group.ownerBrief.lines', 1, 30, 1, (v) => v + ' 条')),
           h(Row, { key: 'og', label: '摘要只取哪些群', hint: '没勾 = 所有白名单群；只列白名单里的群' }, h(OwnerBriefGroups, { draft, setDraft })),

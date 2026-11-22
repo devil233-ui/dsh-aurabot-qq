@@ -3999,6 +3999,13 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     try { return chatOfSession(sessionId) === `private:${getConfig().ownerQQ}` } catch (error) { return false }
   }
 
+  // 一个轮次里没有任何人类说话人：定时任务到点、宿主直接驱动、上一轮续写。
+  // 群聊默认不给这类轮次开工具（它继承最后一条 QQ 消息留下的锁）；打开 group.timerAsOwner
+  // 之后按「本轮全是主人」算，群会话也能拿到私聊同款工具，群上下文与工具才兼得。
+  function autoTurnAsOwner() {
+    try { return getConfig().group?.timerAsOwner === true } catch (error) { return false }
+  }
+
   function turnHasOwner(sessionId) {
     const st = turnState.get(sessionKey(sessionId))
     if (st && st.directOwner) return true // 主人在 DSH 面板里直接打字
@@ -4014,7 +4021,7 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
   function turnSendersAllOwner(sessionId, state) {
     const st = state || turnState.get(sessionKey(sessionId))
     if (st && st.directOwner) return true // 主人在 DSH 面板里直接打字
-    if (!st || !st.senders.size) return ownerPrivateChat(sessionId)
+    if (!st || !st.senders.size) return ownerPrivateChat(sessionId) || autoTurnAsOwner()
     return [...st.senders].every((u) => isOwner(getConfig(), u))
   }
 
@@ -4025,7 +4032,7 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
   function turnSendersAllTools(sessionId, state) {
     const st = state || turnState.get(sessionKey(sessionId))
     if (st && st.directOwner) return true // 主人在 DSH 面板里直接打字
-    if (!st || !st.senders.size) return ownerPrivateChat(sessionId)
+    if (!st || !st.senders.size) return ownerPrivateChat(sessionId) || autoTurnAsOwner()
     const cfg = getConfig()
     return [...st.senders].every((u) => isOwner(cfg, u) || toolsGranted(cfg, u))
   }

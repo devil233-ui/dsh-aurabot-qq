@@ -195,3 +195,78 @@ test('工具闸：白名单成员单独说话按主人算，混进别人就收�
   hub.simulateTurn(sid, [GRANTED])
   assert.equal(hub.turnSendersAllTools(sid), false, '名单清空后回到今天的行为')
 })
+
+test('工具闸：新会话第一条消息就按说话人判定（首轮不再被锁成「不是主人」）', async () => {
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  process.env.AURABOT_WORKSPACE = mkdtempSync(join(tmpdir(), 'aurabot-group-tools-first-'))
+  const { createFakeDsh } = await import('./helpers/fake-dsh.js')
+  const { createHub } = await import('../src/chat/hub.js')
+
+  const OWNER = '10001'
+  const OTHER = '30003'
+  const G = '100200300'
+  const cfg = normalize({ ownerQQ: OWNER, allow: { groups: [G] }, longTasks: false, group: { ownerTools: 'owner' } })
+  const chat = { kind: 'group', chatId: `group:${G}`, groupId: G, userId: OWNER, nickname: '主人' }
+  const build = () => {
+    const fake = createFakeDsh({ brain: () => '好' })
+    const log = { info () {}, warn () {}, debug () {}, error () {} }
+    const hub = createHub({ dsh: fake.ctx, getConfig: () => cfg, log, onebot: { call: async () => ({}) }, buildTools: () => [] })
+    return { fake, hub }
+  }
+
+  const first = build()
+  await first.hub.pushToSession(chat, [{ type: 'text', text: 'pwd' }], OWNER, { queryText: 'pwd' })
+  assert.equal(first.fake.agents.get([...first.fake.agents.keys()].pop())?.guestLocked, 0, '主人说第一句就该有工具')
+
+  const second = build()
+  await second.hub.pushToSession({ ...chat, userId: OTHER, nickname: '路人' }, [{ type: 'text', text: 'pwd' }], OTHER, { queryText: 'pwd' })
+  assert.equal(second.fake.agents.get([...second.fake.agents.keys()].pop())?.guestLocked, 1, '陌生人的第一句必须照旧锁住')
+})
+
+test('定时轮：群会话没有人类说话人时，按 group.timerAsOwner 决定给不给工具', async () => {
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  process.env.AURABOT_WORKSPACE = mkdtempSync(join(tmpdir(), 'aurabot-timer-as-owner-'))
+  const { createFakeDsh } = await import('./helpers/fake-dsh.js')
+  const { createHub } = await import('../src/chat/hub.js')
+
+  const OWNER = '10001'
+  const OTHER = '20002'
+  const G = '100200300'
+  const cfg = normalize({ ownerQQ: OWNER, allow: { groups: [G] }, longTasks: false, group: { ownerTools: 'owner' } })
+  const fake = createFakeDsh({ brain: () => '好' })
+  const log = { info () {}, warn () {}, debug () {}, error () {} }
+  const hub = createHub({ dsh: fake.ctx, getConfig: () => cfg, log, onebot: { call: async () => ({}) }, buildTools: () => [] })
+  const chat = { kind: 'group', chatId: `group:${G}`, groupId: G, userId: OWNER, nickname: '主人' }
+  await hub.pushToSession(chat, [{ type: 'text', text: '六点提醒喝水' }], OWNER, { queryText: '六点提醒喝水' })
+  const sid = [...fake.agents.keys()].pop()
+  assert.ok(sid, '群会话没建起来')
+
+  // 定时任务到点那一轮：宿主直接注入，没有任何人类说话人
+  hub.simulateTurn(sid, [])
+  assert.equal(hub.turnSendersAllTools(sid), false, '默认关着：群会话的自动轮次一个工具都没有')
+  assert.equal(hub.turnSendersAllOwner(sid), false, '默认关着：记忆/表情库这些也不给')
+
+  cfg.group.timerAsOwner = true
+  assert.equal(hub.turnSendersAllTools(sid), true, '打开后自动轮次按主人那一档算')
+  assert.equal(hub.turnSendersAllOwner(sid), true, '开关的语义就是「这一轮等同主人开口」，敏感动作一并放开')
+
+  hub.simulateTurn(sid, [OTHER])
+  assert.equal(hub.turnSendersAllTools(sid), false, '群友说话仍然收紧，开关不影响人情轮')
+  assert.equal(hub.turnSendersAllOwner(sid), false, '群友说话仍然不是主人')
+
+  // 接线契约：闸门接上了 autoTurnAsOwner，面板有对应开关
+  const hubSrc = read('src/chat/hub.js')
+  assert.ok(hubSrc.includes('function autoTurnAsOwner()'), '缺 autoTurnAsOwner 判定')
+  assert.equal(hubSrc.match(/ownerPrivateChat\(sessionId\) \|\| autoTurnAsOwner\(\)/g).length, 2,
+    '两个闸门（主人档 / 工具档）都要接上开关')
+  assert.ok(read('client/client.js').includes("f.sw('group.timerAsOwner')"), '面板缺「定时任务那一轮也算主人」开关')
+
+  // 配置归一化：只认 true，其余一律回落 false
+  assert.equal(normalize({}).group.timerAsOwner, false)
+  assert.equal(normalize({ group: { timerAsOwner: true } }).group.timerAsOwner, true)
+  assert.equal(normalize({ group: { timerAsOwner: 'yes' } }).group.timerAsOwner, false)
+})

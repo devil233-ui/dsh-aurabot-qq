@@ -118,7 +118,7 @@ export const DEFAULTS = {
   persona: { current: 'dafeiyu' },
   personaLook: { visionModel: { provider: '', model: '' } }, // 留空跟随聊天模型
   // 主人私聊里问起群里的事：把最近 24 小时的群聊流水补进这一轮（默认关，开启前先把群加进白名单）
-  group: { ...DEFAULT_GROUP_POLICY, privateCommandsEnabled: true, overrides: {}, ownerTools: 'off', ownerToolsGroups: [], ownerBrief: { enabled: true, lines: 24, groups: [] } },
+  group: { ...DEFAULT_GROUP_POLICY, privateCommandsEnabled: true, overrides: {}, ownerTools: 'off', ownerToolsGroups: [], timerAsOwner: false, ownerBrief: { enabled: true, lines: 24, groups: [] } },
   memberFilter: { enabled: true, rules: [] }, // 不回应的人：明确选择所有群或指定群；不影响私聊
   // 按群头衔不回：勾选的群里，专属头衔正好是 title 的成员（一般是别的机器人）说话、戳她都不理。没勾群就不起作用
   titleFilter: { enabled: true, groups: [], title: '大肥鱼' },
@@ -627,6 +627,9 @@ export function normalize(raw) {
   // 群聊里的本机工具：默认关；只有明确写了 owner 才开（all 已移除，写 all 也按 off 处理）
   g.ownerTools = g.ownerTools === 'owner' ? 'owner' : 'off'
   g.ownerToolsGroups = qqList(g.ownerToolsGroups)
+  // 没有任何人类说话人的轮次（定时任务到点、宿主驱动、续写）默认不给群会话开工具；
+  // 打开后这类轮次按「本轮全是主人」算，群会话也能拿到私聊同款工具。
+  g.timerAsOwner = g.timerAsOwner === true
   c.memory.adaptStyle = c.memory.adaptStyle !== false
   c.voice.autoChance = num(c.voice.autoChance, 0.15, 0, 1)
   c.voice.autoMaxChars = num(c.voice.autoMaxChars, 80, 1, BIG)
