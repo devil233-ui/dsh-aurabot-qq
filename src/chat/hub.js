@@ -222,6 +222,23 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
       return m[1].split(',').map((n) => n.trim().replace(/^"|"$/g, '')).filter((n) => n && n !== '(none)')
     }
   }
+  // 私聊「聊天档」：默认只给读与聊天类工具（GROUP_GUEST_SAFE 里已含 skill 逃生口），
+  // 用户明确要动手时才把全局工具放回来。与群聊 gate 共用 restrict 语义；
+  // steer 进来的消息也走同一个入口，所以中途插一句「帮我查」会当场放开。
+  const TOOL_INTENT = /(查一下|搜一下|查查|搜搜|跑一下|执行一下|帮我.{0,8}(?:查|搜|看|跑|装|下|改|写|建|删|修|连|爬|抓)|日志|报错|堆栈|进程|端口|配置文件|服务器|数据库|仓库|终端|脚本|安装包|依赖|[A-Za-z]:\\|\/(?:root|home|etc|var|tmp)\/)/u
+  function wantsTools(text) { return TOOL_INTENT.test(String(text || '')) }
+  const privateGates = new Map() // sessionKey → { agent, off }
+  function applyPrivateGate(key, allow) {
+    const g = privateGates.get(key)
+    if (!g) return
+    try {
+      if (allow) {
+        if (g.off) { g.off(); g.off = null }
+      } else if (!g.off) {
+        g.off = restrictGuest(g.agent)
+      }
+    } catch (error) { log.debug(`私聊工具闸切换失败（${key}）：`, error.message) }
+  }
   function restrictGuest(agent) {
     const known = knownGlobalNames(agent)
     // 问不出宿主有哪些工具时，宁可一个都不给，也不能漏
@@ -1150,6 +1167,11 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
       try { if (typeof g.off === 'function') g.off() } catch (error) {}
       groupGates.delete(k)
     }
+    for (const [k, g] of privateGates) {
+      if (g.agent !== rec.agent) continue
+      try { if (typeof g.off === 'function') g.off() } catch (error) {}
+      privateGates.delete(k)
+    }
     for (const off of rec.offs.splice(0).reverse()) {
       try { if (typeof off === 'function') off() } catch (error) { log.warn('注销会话挂载失败：', error.message) }
     }
@@ -1280,6 +1302,11 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     if (chat.kind === 'group' && level === 'group-full') {
       groupGates.set(sid, { agent, off: null })
       applyGroupGate(sid, false)
+    }
+    if (chat.kind === 'private' && getConfig().chat?.toolGate !== 'off') {
+      // 只登记容器，不在挂载瞬间就收：那时 agent 的工具表未必就绪，
+      // 探针拿不到名单会退化成 allow: []，连 skill 逃生口一起收掉。真正的收放放在每轮入口。
+      privateGates.set(sid, { agent, off: null })
     }
     const rec = { agent, chat, level, chatId: chat.chatId, offs, toolsKey }
     mounted.set(sid, rec)
@@ -3570,6 +3597,7 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     // 必须把本轮这份 st 递进去：turnState.set(key, st) 在下面，这之前 map 里还没有这一轮，
     // 让判定自己去查会读到上一轮（新会话则是空），首条消息就被锁成「不是主人」。
     if (chat.kind === 'group') applyGroupGate(key, turnSendersAllOwner(sessionId, st))
+    else if (chat.kind === 'private') applyPrivateGate(key, wantsTools(userText))
     // 排队消息的直接请求者不能给正在执行的上一轮借权。
     if (!opts.steer) {
       if (queuedNextTurn) st.pendingDirectRequester = opts.directRequester || null
