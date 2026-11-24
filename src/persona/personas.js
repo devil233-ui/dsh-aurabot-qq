@@ -198,6 +198,7 @@ export function rulesText(kind, cfg, { off = new Set(), extra = [] } = {}) {
     ...(off.has('stickers') ? [] : ['- 表情库是你自己的：名字或标签不贴切、别人建议改名时，用 qq_edit_sticker 改；不喜欢的、重复的可以删。']),
     ...(off.has('qq-tools') ? [] : ['- 想翻这个聊天更早的记录，用 qq_chat_history。']),
     '- 有人戳你（拍一拍）时会写「[戳了戳你]」，可以撒娇、吐槽或者问对方干嘛；想戳回去就在回复里写 <poke>（别每次都戳）。',
+    '- 语言：代码、路径、报错、日志照抄原文不要翻译；你自己分析、计划、自言自语一律用简体中文想，不要写「Let me check」「Wait —」这类英文句子。',
   ]
   // 只在功能真的能用时告诉她，免得答应了做不到
   const who = (ownerOnly) => (ownerOnly ? `只给${owner}` : '')
