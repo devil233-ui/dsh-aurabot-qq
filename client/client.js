@@ -8281,7 +8281,7 @@ body[data-ds-dark-theme] .ab-root,.ab-root.ab-dark{--ab-shadow:0 1px 2px rgba(0,
       return h('div', { className: 'ab-grid' },
         ((m.settings || []).length || (m.errors || []).length || !m.panel) ? h(Card, { title: m.name, desc: m.description, right: h('span', { className: 'ab-badge mine' }, embedded ? '扩展模块 · ' + m.id : m.id) },
           (m.settings || []).map((s) => h(Row, { key: s.key, label: s.label || s.key, hint: s.hint }, field(s))),
-          (m.settings || []).length ? h('div', { className: 'ab-small ab-muted' }, '改完点下面的「保存设置」。') : null,
+          (m.settings || []).length ? h('div', { className: 'ab-small ab-muted' }, '有改动后，底部会出现「保存设置」。') : null,
           (m.errors || []).length ? h('div', { className: 'ab-note err', style: { marginTop: 8 } }, '最近的报错：' + m.errors[0].message) : null) : null,
         m.panel ? h(ExtPanel, { m, settings, draftSettings, setSettings, toast, reload }) : null)
     }
@@ -10045,7 +10045,10 @@ body[data-ds-dark-theme] .ab-root,.ab-root.ab-dark{--ab-shadow:0 1px 2px rgba(0,
         draftSnapRef.current = snap
         setSt((prev) => (prev ? { ...prev, config: clone(snap) } : prev))
         setDraft((current) => {
-          if (!dirtyRef.current || !current) {
+          // 只有「草稿还等于旧基线」时才采纳新快照；动过的草稿一律保留。
+          // 不能只看 dirtyRef——它在重渲染前还是旧值，会把刚敲的字冲回基线（dirty 之后恒假、保存条不出现）。
+          const untouched = !current || JSON.stringify(current) === JSON.stringify(draftBaseRef.current)
+          if (untouched) {
             draftBaseRef.current = clone(snap)
             return clone(snap)
           }
