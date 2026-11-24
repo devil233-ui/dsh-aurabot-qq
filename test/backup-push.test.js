@@ -88,7 +88,7 @@ test('#556 令牌不出现在 git spawn 参数，也不出现在任何 GIT_CONFI
 test('#556 用户名白名单：非法字符回落 oauth2，合法用户名原样拼进助手', () => {
   // 合法：字母数字点下划线连字符，1-64 位
   const okEnv = push.gitEnv('SECRET_TOKEN_A1', 'a-b.c_d')
-  assert.equal(okEnv.GIT_CONFIG_VALUE_0, '!echo "username=a-b.c_d"; echo "password=$AURABOT_GITEE_TOKEN"')
+  assert.equal(okEnv.GIT_CONFIG_VALUE_0, '!f() { echo "username=a-b.c_d"; echo "password=$AURABOT_GITEE_TOKEN"; }; f')
   // 非法（能改 sh 语义的字符、超长、空）一律回落 oauth2，且令牌只进环境变量
   for (const bad of ['a;b', 'a b', '$x', 'a`b', 'x'.repeat(65), '', 'a"b']) {
     const e = push.gitEnv('SECRET_TOKEN_A1', bad)
@@ -129,7 +129,7 @@ test('完整推送：init → remote → 校验私有 → ls-remote → add → 
   // 令牌经环境变量 AURABOT_GITEE_TOKEN 喂给内联凭据助手（#556，走 401 challenge），不进命令行
   const env = commands[0].env
   assert.equal(env.GIT_CONFIG_KEY_0, 'credential.helper')
-  assert.equal(env.GIT_CONFIG_VALUE_0, '!echo "username=owner-x"; echo "password=$AURABOT_GITEE_TOKEN"')
+  assert.equal(env.GIT_CONFIG_VALUE_0, '!f() { echo "username=owner-x"; echo "password=$AURABOT_GITEE_TOKEN"; }; f')
   assert.equal(env.AURABOT_GITEE_TOKEN, 'SECRET_TOKEN_A1')
   assert.equal(env.GIT_TERMINAL_PROMPT, '0')
   assert.equal(env.GIT_AUTHOR_NAME, 'Aurabot')

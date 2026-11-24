@@ -74,7 +74,9 @@ export function gitEnv(token, username = '') {
   const user = HELPER_USER_RE.test(String(username)) ? String(username) : 'oauth2'
   env.GIT_CONFIG_KEY_0 = 'credential.helper'
   // 助手脚本只 echo 用户名与从环境变量读的密码，令牌原文不出现在这段脚本里。
-  env.GIT_CONFIG_VALUE_0 = `!echo "username=${user}"; echo "password=$AURABOT_GITEE_TOKEN"`
+  // 必须是 `!f() {...}; f` 形式：直接写 `!echo ...; echo ...` 时 git 传给助手的附加参数会把第二行
+  // 拼坏，Gitee 会回「Incorrect username or password (access token)」（2026-11-25 实测，见 #556 补记）。
+  env.GIT_CONFIG_VALUE_0 = `!f() { echo "username=${user}"; echo "password=$AURABOT_GITEE_TOKEN"; }; f`
   return env
 }
 
