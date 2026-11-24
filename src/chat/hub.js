@@ -228,6 +228,21 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
   const TOOL_INTENT = /(查一下|搜一下|查查|搜搜|跑一下|执行一下|帮我.{0,8}(?:查|搜|看|跑|装|下|改|写|建|删|修|连|爬|抓)|日志|报错|堆栈|进程|端口|配置文件|服务器|数据库|仓库|终端|脚本|安装包|依赖|[A-Za-z]:\\|\/(?:root|home|etc|var|tmp)\/)/u
   function wantsTools(text) { return TOOL_INTENT.test(String(text || '')) }
   const privateGates = new Map() // sessionKey → { agent, off }
+  // 「申请工具」：聊天档收起后，她可以在下一轮之前调 qq_need_tools 说明要做什么，
+  // 这里记一笔，下一轮入口按申请放开。10 分钟有效，放开即清。
+  const privateNeedTools = new Map() // chatId → { at, reason }
+  const NEED_TOOLS_TTL_MS = 10 * 60_000
+  function requestTools(chatId, reason) {
+    privateNeedTools.set(String(chatId), { at: Date.now(), reason: String(reason || '').slice(0, 300) })
+    log.info(`${chatId}：她申请用工具（${String(reason || '').slice(0, 80)}）→ 下一轮放开`)
+    return { ok: true, message: '记下了，下一轮工具会放开；这轮有什么要查的，下一轮就能查。' }
+  }
+  function takeToolRequest(chatId) {
+    const rec = privateNeedTools.get(String(chatId))
+    if (!rec) return null
+    privateNeedTools.delete(String(chatId))
+    return Date.now() - rec.at <= NEED_TOOLS_TTL_MS ? rec : null
+  }
   function applyPrivateGate(key, allow) {
     const g = privateGates.get(key)
     if (!g) return
@@ -3597,7 +3612,12 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     // 必须把本轮这份 st 递进去：turnState.set(key, st) 在下面，这之前 map 里还没有这一轮，
     // 让判定自己去查会读到上一轮（新会话则是空），首条消息就被锁成「不是主人」。
     if (chat.kind === 'group') applyGroupGate(key, turnSendersAllOwner(sessionId, st))
-    else if (chat.kind === 'private') applyPrivateGate(key, wantsTools(userText))
+    else if (chat.kind === 'private') {
+      // 她的主动申请优先于「用户消息里有没有工具词」：申请过这一轮就放开。
+      const asked = takeToolRequest(chat.chatId)
+      applyPrivateGate(key, wantsTools(userText) || Boolean(asked))
+      if (asked) log.info(`${chat.chatId}：按她的申请放开工具（${asked.reason.slice(0, 60)}）`)
+    }
     // 排队消息的直接请求者不能给正在执行的上一轮借权。
     if (!opts.steer) {
       if (queuedNextTurn) st.pendingDirectRequester = opts.directRequester || null
@@ -4417,6 +4437,7 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     chatLogOf,
     forgetChatLog,
     noteSaid,
+    requestTools,
     chatLogDays,
     deleteChatLog,
     sessions: () => map().chats,
