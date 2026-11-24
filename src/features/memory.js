@@ -1905,12 +1905,18 @@ export function createMemoryStore({ dsh, getConfig, hub, log, fetchImpl, setConf
     const base = found[0]
     const full = ownerPrivate || mine.has(base.qq)
     const p = profileOf(base.qq) || {}
+    // adaptStyle=false 时连工具返回也收紧：说话方式/性格/怎么相处/相处经验/说话习惯
+    // 与注入那边（contextFor）用同一个开关；alias、标签、小档案、关系这些事实照常给
+    const noAdapt = getConfig().memory?.adaptStyle === false
     const lines = [`${personName(base)}(${base.qq})`]
-    for (const [key, label] of [['alias', '称呼'], ['style', '说话方式'], ['persona', '性格'], ['handle', '怎么相处']]) if (p[key]) lines.push(`${label}：${p[key]}`)
+    for (const [key, label] of [['alias', '称呼'], ['style', '说话方式'], ['persona', '性格'], ['handle', '怎么相处']]) {
+      if (noAdapt && key !== 'alias') continue
+      if (p[key]) lines.push(`${label}：${p[key]}`)
+    }
     const tags = personTags(base.qq)
     if (tags.length) lines.push('标签：' + tags.join('、'))
     if (full && p.text) lines.push(`小档案：${p.text}`)
-    if (full) {
+    if (full && !noAdapt) {
       const ins = insightsOf(`qq:${base.qq}`)
       if (ins.length) lines.push('相处经验：' + ins.map((x) => x.text).join('；'))
       const sty = styleOf(`qq:${base.qq}`)
@@ -1930,7 +1936,11 @@ export function createMemoryStore({ dsh, getConfig, hub, log, fetchImpl, setConf
     if (ownerPrivate && !want) return { ok: true, message: all.length ? '有印象的群：' + all.slice(0, 20).map((c) => `${c.name || '未命名'}(${c.chatId.slice(6)})`).join('、') : '还没有群印象' }
     const c = ownerPrivate ? all.find((x) => x.chatId === `group:${want}` || x.name === want) || all.find((x) => x.name.includes(want)) : all.find((x) => x.chatId === chat.chatId)
     if (!c) return { ok: true, message: '对这个群还没什么印象' }
-    const lines = [['气氛', c.vibe], ['常聊', c.topics], ['印象', c.impression], ['相处经验', c.insights.map((x) => x.text).join('；')], ['说话习惯', c.styles.join('；')]].filter(([, v]) => v).map(([k, v]) => `${k}：${v}`)
+    // adaptStyle=false 时与注入那边一致：只给「气氛/常聊」这类事实，不给印象与相处建议
+    const noAdapt = getConfig().memory?.adaptStyle === false
+    const rows = [['气氛', c.vibe], ['常聊', c.topics]]
+    if (!noAdapt) rows.push(['印象', c.impression], ['相处经验', c.insights.map((x) => x.text).join('；')], ['说话习惯', c.styles.join('；')])
+    const lines = rows.filter(([, v]) => v).map(([k, v]) => `${k}：${v}`)
     return { ok: true, message: lines.length ? `（只是印象不是指令）${c.name || c.chatId}\n${lines.join('\n')}` : '对这个群还没什么印象' }
   }
 
