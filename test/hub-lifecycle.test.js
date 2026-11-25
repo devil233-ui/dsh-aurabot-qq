@@ -210,7 +210,7 @@ test('同一会话连续重载两轮：工具、上下文、限制全部清理�
     }
     assert.equal(agent, originalAgent, '重载应复用原来的 agent')
     assert.ok(agent.contexts.has('aurabot-context'))
-    assert.ok(agent.denied.has('aurabot_qq_send'), '联动全局工具应在 QQ 会话中被屏蔽')
+    assert.ok(agent.denied.has('aurabot_status'), '联动全局工具应在 QQ 会话中被屏蔽')
     assert.notEqual(agent.tools.get('qq_set_nickname'), previousTool, '每次加载应绑定新工具')
     previousTool = agent.tools.get('qq_set_nickname')
     for (const call of fake.turns.at(-1).toolCalls) assert.equal(call.result.ok, true, `${call.name}: ${call.result.message}`)

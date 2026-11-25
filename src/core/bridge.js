@@ -100,13 +100,8 @@ export function createBridge({ ctx, getConfig, setConfig, hub, mods, log, versio
   function builtinTools() {
     const name = selfName(getConfig())
     return [
-      defineTool({
-        name: 'aurabot_qq_send',
-        description: `让 QQ 上的「${name}」（Aurabot 插件里的 AI 伙伴）替你发一条 QQ 消息。target 写 private:QQ号 或 group:群号，不填就发给主人。text 是要发的话，可以用 ||| 分多条、<voice>…</voice> 发语音。`,
-        properties: { target: str('private:QQ号 / group:群号，可不填（发给主人）'), text: str('要发的话') },
-        required: ['text'],
-        execute: async (args) => ops.send(args),
-      }),
+      // 2026-11-25：这里的 auray_qq_send 已移除。它绕过自主意识的冷却/插队/排队，
+      // 任何 DSH 会话都能用它替她发言；工作间需要说话时走 autonomy_say 那三道闸。
       defineTool({
         name: 'aurabot_status',
         description: `看看 QQ 上的「${name}」现在的状态：在不在线、心情、开着哪些模块。`,
