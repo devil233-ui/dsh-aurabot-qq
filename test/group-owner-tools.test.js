@@ -270,3 +270,47 @@ test('定时轮：群会话没有人类说话人时，按 group.timerAsOwner 决
   assert.equal(normalize({ group: { timerAsOwner: true } }).group.timerAsOwner, true)
   assert.equal(normalize({ group: { timerAsOwner: 'yes' } }).group.timerAsOwner, false)
 })
+
+test('定时轮：注入式轮次（不经过 pushToSession）也会按本轮发话人重拨闸门', async () => {
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  process.env.AURABOT_WORKSPACE = mkdtempSync(join(tmpdir(), 'aurabot-injected-turn-gate-'))
+  const { createFakeDsh } = await import('./helpers/fake-dsh.js')
+  const { createHub } = await import('../src/chat/hub.js')
+
+  const OWNER = '10001'
+  const OTHER = '20002'
+  const G = '100200300'
+  const cfg = normalize({ ownerQQ: OWNER, allow: { groups: [G] }, longTasks: false, group: { ownerTools: 'owner' } })
+  const fake = createFakeDsh({ brain: () => '好' })
+  const log = { info () {}, warn () {}, debug () {}, error () {} }
+  const hub = createHub({ dsh: fake.ctx, getConfig: () => cfg, log, onebot: { call: async () => ({}) }, buildTools: () => [] })
+  // 真实接线在 host.js：`ctx.on('session/event', …)` → `hub.onSessionEvent`；这里照原样接上，
+  // 否则注入式轮次的 user/message 根本到不了闸门那一步（我第一版测试就是漏了这个）
+  fake.ctx.on('session/event', (session, event) => hub.onSessionEvent(session, event))
+  const chat = { kind: 'group', chatId: `group:${G}`, groupId: G, userId: OWNER, nickname: '主人' }
+
+  // 群友先说一句：闸门必须收紧
+  await hub.pushToSession({ ...chat, userId: OTHER, nickname: '路人' }, [{ type: 'text', text: '在吗' }], OTHER, { queryText: '在吗' })
+  const sid = [...fake.agents.keys()].pop()
+  const agent = fake.agents.get(sid)
+  assert.equal(agent?.guestLocked, 1, '群友那一轮必须收紧')
+
+  const injected = (text) => ({
+    type: 'user/message',
+    data: { source: { kind: 'system' }, message: { content: [{ type: 'text', text }] } },
+  })
+
+  // 真实时序里这一轮已经 turn/end（senders 被清空），定时注入是全新的一轮、没有发话人
+  hub.simulateTurn(sid, [])
+
+  // 宿主定时任务注入：没有人类说话人、也不经过 pushToSession
+  cfg.group.timerAsOwner = false
+  fake.emit('session/event', { id: sid }, injected('（定时任务）该喝水了'))
+  assert.equal(agent?.guestLocked, 1, '开关关着时注入轮次仍然不给工具')
+
+  cfg.group.timerAsOwner = true
+  fake.emit('session/event', { id: sid }, injected('（定时任务）该喝水了'))
+  assert.equal(agent?.guestLocked, 0, '开关打开后注入轮次按主人那一档拨闸门')
+})

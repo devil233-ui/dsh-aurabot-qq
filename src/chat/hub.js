@@ -2179,6 +2179,14 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     const st = turnState.get(key) || { lastTurn: -1, text: '', senders: new Set() }
     turnState.set(key, st)
     if (event.type === 'user/message') {
+      // 有的轮次不是从 QQ 推来的：宿主定时任务直接把提示词注入会话、面板里直接打字等。
+      // 这些轮次不经过 pushToSession，闸门就停在上一条群消息留下的状态——2026-11-26 14:04
+      // 那一轮就是这么丢了全部本机工具的。这里按「本轮发话人」补拨一次；没有发话人就走
+      // group.timerAsOwner（与 push 路径同一个判据）。
+      // 必须放在下面改写 senders 之前：那段是「主人在面板里打字」的特例，会把 senders 覆盖成主人。
+      if (String(chatId).startsWith('group:')) {
+        try { applyGroupGate(key, turnSendersAllTools(key, st)) } catch (error) { log.debug('轮次起点拨闸门失败：', error.message) }
+      }
       // 主人在 DSH 会话窗口里直接打字（不是从 QQ 转进来的，#58）：只有主人能操作 DSH，
       // 这一轮按「主人说的」算；不然重开会话后在面板里让她改资料会报没权限。
       const src = event.data && event.data.source
