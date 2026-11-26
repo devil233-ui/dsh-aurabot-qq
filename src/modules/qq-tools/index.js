@@ -2,8 +2,9 @@
 
 import { defineTool, str, int, bool } from '../../tools/tools.js'
 import { readQqFile } from '../../features/qq-file.js'
-import { resolveGuestReadPath } from '../../features/guest-read.js'
-import { readFileSync } from 'node:fs'
+import { resolveGuestReadPath, resolveGuestWritePath } from '../../features/guest-read.js'
+import { readFileSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { parseMessageEvent } from '../../chat/inbound.js'
 import { hasInvalidVoiceMarkup } from '../../chat/reply.js'
 
@@ -237,6 +238,30 @@ export default {
           const take = Number(limit) > 0 ? Number(limit) : lines.length
           const part = lines.slice(from, from + take)
           return { ok: true, message: part.map((line, i) => `${from + i + 1}\t${line}`).join('\n') }
+        },
+      }))
+      // 写本机文件：和读同一套钳制，落点必须在工作区或可信根内（软链按真实落点算）
+      tools.push(defineTool({
+        name: 'qq_write_local',
+        description: '写本机文本文件：只能写工作区里，或主人放行的技能/日记/解析缓存目录。默认覆盖，mode 填 append 追加。目录不存在会自动建。',
+        properties: {
+          path: str('文件路径，相对路径按工作区解析'),
+          content: str('要写入的文本'),
+          mode: str('可选：write（默认，覆盖）或 append（追加）'),
+        },
+        required: ['path', 'content'],
+        execute: async ({ path: want, content, mode }) => {
+          const hit = resolveGuestWritePath(api.config(), want)
+          if (!hit.ok) return { ok: false, message: `写不了：${hit.reason}` }
+          const text = String(content ?? '')
+          try {
+            if (String(mode || '').toLowerCase() === 'append') appendFileSync(hit.path, text)
+            else {
+              mkdirSync(dirname(hit.path), { recursive: true })
+              writeFileSync(hit.path, text)
+            }
+          } catch (error) { return { ok: false, message: `写失败：${error.message}` } }
+          return { ok: true, message: `${String(mode || '').toLowerCase() === 'append' ? '追加' : '写入'} ${text.length} 字：${hit.path}` }
         },
       }))
       // 发文件/发图：主人私聊（full）和群聊都挂；群里只有「这一轮说话的人全是主人」才放行（#169）。

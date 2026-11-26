@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { resolveGuestReadPath } from '../src/features/guest-read.js'
+import { resolveGuestReadPath, resolveGuestWritePath } from '../src/features/guest-read.js'
 
 function sandbox() {
   const base = mkdtempSync(join(tmpdir(), 'guest-read-'))
@@ -63,5 +63,35 @@ test('不存在的文件：路径合法但 exists=false', () => {
     const hit = resolveGuestReadPath(s.cfg, 'missing.md')
     assert.equal(hit.ok, true)
     assert.equal(hit.exists, false)
+  } finally { s.done() }
+})
+
+test('写：工作区里的文件放行', () => {
+  const s = sandbox(); try {
+    const hit = resolveGuestWritePath(s.cfg, 'new.md')
+    assert.equal(hit.ok, true)
+    assert.equal(hit.path, join(s.ws, 'new.md'))
+  } finally { s.done() }
+})
+
+test('写：软链指向可信根内（日记那种）放行', () => {
+  const s = sandbox(); try {
+    const hit = resolveGuestWritePath(s.cfg, 'skills/draft.md')
+    assert.equal(hit.ok, true)
+    assert.equal(hit.path, join(s.skills, 'draft.md'))
+  } finally { s.done() }
+})
+
+test('写：软链指向可信根外拒绝', () => {
+  const s = sandbox(); try {
+    const hit = resolveGuestWritePath(s.cfg, 'escape/evil.md')
+    assert.equal(hit.ok, false)
+  } finally { s.done() }
+})
+
+test('写：.. 逃逸拒绝', () => {
+  const s = sandbox(); try {
+    assert.equal(resolveGuestWritePath(s.cfg, '../evil.md').ok, false)
+    assert.equal(resolveGuestWritePath(s.cfg, '/tmp/evil.md').ok, false)
   } finally { s.done() }
 })

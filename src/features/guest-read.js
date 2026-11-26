@@ -59,3 +59,14 @@ export function resolveGuestReadPath(cfg, raw) {
   try { exists = statSync(real).isFile() } catch { exists = false }
   return { ok: true, path: real, exists }
 }
+
+/**
+ * 写盘的落点判定：和读一样两关，但返回的是「要写的绝对路径」。
+ * 已存在的软链按真实落点判（防止 diary -> modules-data 这类穿透写到可信根外）。
+ * 不存在的文件：取最近存在祖先的真实路径，再拼回尾段。
+ */
+export function resolveGuestWritePath(cfg, raw) {
+  const hit = resolveGuestReadPath(cfg, raw)
+  if (!hit.ok) return hit
+  return { ok: true, path: hit.path }
+}

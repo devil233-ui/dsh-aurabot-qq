@@ -330,10 +330,10 @@ test('群友轮白名单：只读检索类放行，能动本机/账号的继续�
   for (const name of ['ask_user_question', 'web_search', 'web_fetch', 'read_image',
     'mcp__AkashaTerminal__searchAkasha', 'mcp__HoyoNews__search_news',
     'knowledge_recall', 'rss_list', 'search_meme', 'sticker_find', 'bili_cover', 'bili_frames', 'bili_watch',
-    'write', 'edit', 'qq_read_local']) {
+    'qq_read_local', 'qq_write_local']) {
     assert.ok(allowed(name), `应放行：${name}`)
   }
-  for (const name of ['bash', 'read', 'grep', 'glob',
+  for (const name of ['bash', 'read', 'write', 'edit', 'grep', 'glob',
     'mcp__fastctx__inspect_local_file', 'mcp__fastctx__grep', 'mcp__fastctx__glob',
     'mcp__fastctx__replace', 'mcp__fastctx__run',
     'bili_set_avatar', 'bili_set_sign', 'bili_comment', 'schedule_create', 'spawn_teammate']) {

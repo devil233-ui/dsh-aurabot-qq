@@ -213,15 +213,15 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
   // · fastctx 只放 inspect_local_file / grep / glob，replace 能写盘、run 能执行，继续收
   // · bili 只放看的那几个；set_avatar / set_sign / comment（可能带发布动作）继续收
   // 新装 MCP 的读接口没在这张表里 = 继续收，宁可漏放不要漏收。
-  // 2026-11-26：写工作区之外的路径会跳审批，群友轮没人应答即失败关闭，所以 write/edit 放行。
-  // 读盘改用带钳制的 qq_read_local（只认工作区与可信根），原生 read 与 fastctx 的 inspect/grep/glob 继续收。
+  // 2026-11-26：会话保持完全权限（主人轮不受限），群友轮的读写改用带钳制的 qq_read_local / qq_write_local；
+  // 原生 read/write/edit、fastctx 的三读两写、bash 一律收着，绝不让群友轮拿到无钳制的文件通道。
   const GROUP_GUEST_SAFE = [/^ask_user_question$/, /^present$/, /^skill$/, /^todo_write$/, /^recall_memory$/,
     /^unlag_refresh$/, /^mcp_probe$/, /^list_mcp_resource/, /^read_mcp_resource$/, /^web_search$/, /^mcp__Akasha/,
     /^web_fetch$/, /^read_image$/, /^mcp__HoyoNews/,
     /^knowledge_/, /^rss_/, /^(?:meme_|search_meme$)/, /^sticker_find$/,
     /^bili_(?:watch|cover|frames|danmaku)$/,
-    /^(?:write|edit)$/,
-    /^qq_read_local$/]
+    /^qq_read_local$/,
+    /^qq_write_local$/]
   const groupGates = new Map() // sessionKey → { agent, off }
   // 宿主认哪些全局工具名：拿一个肯定不存在的名字去问，restrict 会在校验阶段就抛错并列出全表。
   function knownGlobalNames(agent) {
