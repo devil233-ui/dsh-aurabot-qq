@@ -94,7 +94,8 @@ test('接线契约：preset、人格变量、闸门、面板开关都在', () =>
   // 2026-11-26 用户拍板放开只读检索类（read_image / web_fetch / fastctx 三读），
   // 理由：群友轮连查资料都不行。代价是这三条从「危险」降为「放行」，宿主没有工作区钳制（danger-full-access），
   // 所以 read_image 能读任意图片路径、web_fetch 能打 file:// 与内网——这是主动降级，不是漏判。
-  const dangerous = ['bash', 'read',
+  const dangerous = ['bash', 'read', 'grep', 'glob', 'mcp__fastctx__inspect_local_file',
+    'mcp__fastctx__grep', 'mcp__fastctx__glob',
     'spawn_teammate', 'team_task_create', 'team_task_update', 'create_skill', 'working_directory',
     'remote_upload_file', 'remote_read_session', 'job_kill', 'schedule_create',
     'mcp__fastctx__run', 'mcp__fastctx__run_background', 'mcp__fastctx__replace']
@@ -328,12 +329,12 @@ test('群友轮白名单：只读检索类放行，能动本机/账号的继续�
 
   for (const name of ['ask_user_question', 'web_search', 'web_fetch', 'read_image',
     'mcp__AkashaTerminal__searchAkasha', 'mcp__HoyoNews__search_news',
-    'mcp__fastctx__inspect_local_file', 'mcp__fastctx__grep', 'mcp__fastctx__glob',
     'knowledge_recall', 'rss_list', 'search_meme', 'sticker_find', 'bili_cover', 'bili_frames', 'bili_watch',
-    'write', 'edit', 'glob', 'grep']) {
+    'write', 'edit', 'qq_read_local']) {
     assert.ok(allowed(name), `应放行：${name}`)
   }
-  for (const name of ['bash', 'read',
+  for (const name of ['bash', 'read', 'grep', 'glob',
+    'mcp__fastctx__inspect_local_file', 'mcp__fastctx__grep', 'mcp__fastctx__glob',
     'mcp__fastctx__replace', 'mcp__fastctx__run',
     'bili_set_avatar', 'bili_set_sign', 'bili_comment', 'schedule_create', 'spawn_teammate']) {
     assert.ok(!allowed(name), `必须继续收：${name}`)

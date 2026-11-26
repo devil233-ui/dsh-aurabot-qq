@@ -2,6 +2,8 @@
 
 import { defineTool, str, int, bool } from '../../tools/tools.js'
 import { readQqFile } from '../../features/qq-file.js'
+import { resolveGuestReadPath } from '../../features/guest-read.js'
+import { readFileSync } from 'node:fs'
 import { parseMessageEvent } from '../../chat/inbound.js'
 import { hasInvalidVoiceMarkup } from '../../chat/reply.js'
 
@@ -211,6 +213,30 @@ export default {
           const file = want ? list.findLast((f) => f.name === want) || list.findLast((f) => f.name.includes(want)) : list.at(-1)
           if (!file) return { ok: false, message: `没找到「${want}」，最近的文件有：${list.map((f) => f.name).join('、')}` }
           return readQqFile({ onebot, chat, file, dsh: api.dsh, canPreview: () => hub.canSeeImages(chat) })
+        },
+      }))
+      // 读本机文件：群友轮也能用，但只认工作区与主人放行的目录（原生 read 太宽，不给）
+      tools.push(defineTool({
+        name: 'qq_read_local',
+        description: '读本机上的文本文件：只能读工作区里的，或主人放行的技能/日记/解析缓存目录。路径可写相对工作区的相对路径。一次最多 200KB，可指定从第几行开始、读多少行。',
+        properties: {
+          path: str('文件路径，相对路径按工作区解析'),
+          offset: int('可选：从第几行开始（1 起）'),
+          limit: int('可选：最多读多少行'),
+        },
+        required: ['path'],
+        execute: async ({ path: want, offset, limit }) => {
+          const hit = resolveGuestReadPath(api.config(), want)
+          if (!hit.ok) return { ok: false, message: `读不了：${hit.reason}` }
+          if (!hit.exists) return { ok: false, message: `没有这个文件：${want}` }
+          let buf = null
+          try { buf = readFileSync(hit.path) } catch (error) { return { ok: false, message: `读失败：${error.message}` } }
+          if (buf.length > 200 * 1024) return { ok: false, message: `文件 ${Math.round(buf.length / 1024)}KB，超过 200KB，先自己缩小范围` }
+          const lines = buf.toString('utf8').split(/\r?\n/)
+          const from = Number(offset) > 0 ? Number(offset) - 1 : 0
+          const take = Number(limit) > 0 ? Number(limit) : lines.length
+          const part = lines.slice(from, from + take)
+          return { ok: true, message: part.map((line, i) => `${from + i + 1}\t${line}`).join('\n') }
         },
       }))
       // 发文件/发图：主人私聊（full）和群聊都挂；群里只有「这一轮说话的人全是主人」才放行（#169）。
