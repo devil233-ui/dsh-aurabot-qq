@@ -3632,7 +3632,10 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
     // 群聊本机工具按「这一轮说话的人」开合：全是主人（或拿到了本机工具授权的人）就放开，掺了别人就收回去。
     // 必须把本轮这份 st 递进去：turnState.set(key, st) 在下面，这之前 map 里还没有这一轮，
     // 让判定自己去查会读到上一轮（新会话则是空），首条消息就被锁成「不是主人」。
-    if (chat.kind === 'group') applyGroupGate(key, turnSendersAllTools(sessionId, st))
+    if (chat.kind === 'group') {
+      st.relayed = await quotedFromOutsider(content)
+      applyGroupGate(key, turnSendersAllTools(sessionId, st))
+    }
     else if (chat.kind === 'private') {
       // 本轮一旦放开就一直放开到轮末：授权词或她自己的申请都算，中途 steer 不收回。
       if (!opts.steer) st.toolsOpened = false
@@ -4050,9 +4053,32 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
    * 工具闸专用判定：主人，或拿到「本机工具」授权的成员（capabilityAllow.tools）。
    * 只替换群聊工具闸那一处；记忆、表情库、生图这些主人专属动作仍走 turnSendersAllOwner。
    */
+
+  /**
+   * 这一轮的 QQ 消息里带着「引用回复」，而且被引用的那条是别人发的 → 算转述。
+   * 只查一次 get_msg，失败就当不是（宁可放松也不误锁主人）。
+   */
+  async function quotedFromOutsider(content) {
+    try {
+      const segs = Array.isArray(content) ? content : []
+      const reply = segs.find((seg) => seg && seg.type === 'reply')
+      const id = String(reply?.data?.id ?? '').trim()
+      if (!id) return false
+      const m = await onebot.call('get_msg', { message_id: Number(id) || id }, { timeoutMs: 5000, retries: 0 })
+      const uid = String(m?.sender?.user_id ?? m?.user_id ?? '').trim()
+      if (!uid) return false
+      const cfg = getConfig()
+      return !isOwner(cfg, uid) && !toolsGranted(cfg, uid)
+    } catch (error) {
+      log.debug('查被引用那条的发送者失败：', error.message)
+      return false
+    }
+  }
   function turnSendersAllTools(sessionId, state) {
     const st = state || turnState.get(sessionKey(sessionId))
     if (st && st.directOwner) return true // 主人在 DSH 面板里直接打字
+    // 主人在群里引用别人的消息说话 = 转述：那条不是他自己的想法，按群友轮处理（2026-11-26 定）
+    if (st && st.relayed) return false
     if (!st || !st.senders.size) return ownerPrivateChat(sessionId) || autoTurnAsOwner()
     const cfg = getConfig()
     return [...st.senders].every((u) => isOwner(cfg, u) || toolsGranted(cfg, u))

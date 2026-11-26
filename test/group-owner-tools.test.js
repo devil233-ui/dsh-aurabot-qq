@@ -340,3 +340,43 @@ test('群友轮白名单：只读检索类放行，能动本机/账号的继续�
     assert.ok(!allowed(name), `必须继续收：${name}`)
   }
 })
+
+test('转述：主人引用别人的消息说话，工具闸按群友轮收（#2026-11-26）', async () => {
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  process.env.AURABOT_WORKSPACE = mkdtempSync(join(tmpdir(), 'aurabot-relay-'))
+  const { createFakeDsh } = await import('./helpers/fake-dsh.js')
+  const { createHub } = await import('../src/chat/hub.js')
+
+  const OWNER = '10001'
+  const OTHER = '30003'
+  const G = '100200300'
+  const cfg = normalize({ ownerQQ: OWNER, allow: { groups: [G] }, longTasks: false, group: { ownerTools: 'owner' } })
+  const fake = createFakeDsh({ brain: () => '好' })
+  const log = { info () {}, warn () {}, debug () {}, error () {} }
+  let quotedFrom = OTHER
+  const onebot = { call: async (action) => (action === 'get_msg' ? { sender: { user_id: Number(quotedFrom) } } : {}) }
+  const hub = createHub({ dsh: fake.ctx, getConfig: () => cfg, log, onebot, buildTools: () => [] })
+  const chat = { kind: 'group', chatId: `group:${G}`, groupId: G, userId: OWNER, nickname: '主人' }
+
+  // 先建会话
+  await hub.pushToSession(chat, [{ type: 'text', text: '你好' }], OWNER, { queryText: '你好' })
+  const sid = [...fake.agents.keys()].pop()
+  const agent = fake.agents.get(sid)
+
+  // 主人引用群友的消息 → 转述，工具收紧
+  await hub.pushToSession(chat, [
+    { type: 'reply', data: { id: '9001' } },
+    { type: 'text', text: '他说这个能删吗' },
+  ], OWNER, { queryText: '他说这个能删吗' })
+  assert.ok(agent.guestLocked > 0, '转述别人的话时不能按主人全权放开')
+
+  // 主人引用自己的消息 → 不算转述
+  quotedFrom = OWNER
+  await hub.pushToSession(chat, [
+    { type: 'reply', data: { id: '9002' } },
+    { type: 'text', text: '接着说刚才那句' },
+  ], OWNER, { queryText: '接着说刚才那句' })
+  assert.equal(agent.guestLocked, 0, '引用自己的话仍是主人轮')
+})
