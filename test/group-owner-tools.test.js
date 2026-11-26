@@ -380,3 +380,16 @@ test('转述：主人引用别人的消息说话，工具闸按群友轮收（#2
   ], OWNER, { queryText: '接着说刚才那句' })
   assert.equal(agent.guestLocked, 0, '引用自己的话仍是主人轮')
 })
+
+test('可信根：面板能改、宿主能存、归一化不吞非法项', async () => {
+  const cfg = normalize({ guestReadRoots: ['  /root/鱼  ', '/root/.dsh/skills', '/root/鱼', 'relative/path', ''] })
+  assert.deepEqual(cfg.guestReadRoots, ['/root/鱼', '/root/.dsh/skills'], '去重、去空格、丢相对路径')
+  assert.deepEqual(normalize({ guestReadRoots: Array.from({ length: 12 }, (_, i) => `/root/x${i}`) }).guestReadRoots.length, 8, '最多 8 条')
+  const host = read('src/host.js')
+  assert.ok(host.includes('b.guestReadRoots'), '宿主保存没接收 guestReadRoots')
+  const client = read('client/client.js')
+  assert.ok(client.includes("f.list('guestReadRoots'"), '面板缺可信根控件')
+  const gr = read('src/features/guest-read.js')
+  assert.ok(gr.includes('DEFAULT_GUEST_READ_ROOTS'), '没默认可信根')
+  assert.ok(gr.includes('realpathSync'), '缺 realpath 判定')
+})

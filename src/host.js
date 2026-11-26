@@ -1575,6 +1575,11 @@ export function apply(ctx) {
     const spPatch = {}
     for (const k of ['awakeFrom', 'awakeTo', 'maxPerDay']) if (Number.isFinite(b[k])) spPatch[k] = Math.max(0, Math.floor(b[k]))
     if (Object.keys(spPatch).length) patch.speakUp = spPatch
+    // 群友轮读写白名单：只收绝对路径，去重、限 8 条；非法项丢弃（不清空已存的）
+    if (Array.isArray(b.guestReadRoots)) {
+      const roots = b.guestReadRoots.map((x) => String(x || '').trim()).filter((x) => x.startsWith('/') && !x.includes('\0'))
+      patch.guestReadRoots = [...new Set(roots)].slice(0, 8)
+    }
     if (!Object.keys(patch).length) return { ok: false, message: '没有可保存的字段' }
     setConfig(mergeFromPanel(cfg, patch))
     log.info(`面板已保存目的引擎设置｜${Object.keys(extPatch).map((k) => k + '=' + extPatch[k]).concat(Object.keys(spPatch).map((k) => k + '=' + spPatch[k])).join(' ')}`)

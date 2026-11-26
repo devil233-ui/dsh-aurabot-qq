@@ -18,7 +18,8 @@ const realish = (p) => {
 /** 可信根（工作区在前），全部取真实路径：软链根按指向的真实目录比 */
 export function guestReadRoots(cfg) {
   const ws = norm(cfg?.workspaceDir)
-  const extra = Array.isArray(cfg?.guestReadRoots) ? cfg.guestReadRoots.map(String).filter(Boolean) : DEFAULT_GUEST_READ_ROOTS
+  const list = Array.isArray(cfg?.guestReadRoots) ? cfg.guestReadRoots.map(String).filter(Boolean) : []
+  const extra = list.length ? list : DEFAULT_GUEST_READ_ROOTS
   return [...new Set([ws, ...extra].filter(Boolean).map(realish))]
 }
 

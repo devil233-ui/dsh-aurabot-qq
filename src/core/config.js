@@ -552,6 +552,10 @@ export function normalize(raw) {
     const ids = Array.isArray(c.capabilityAllow?.[key]) ? c.capabilityAllow[key] : []
     return [key, [...new Set(ids.map(String).map((id) => id.trim()).filter((id) => /^\d{5,}$/.test(id)))]]
   }))
+  // 群友轮读写白名单：只留绝对路径，去重、限 8 条（宿主保存时再校验一次）
+  c.guestReadRoots = [...new Set((Array.isArray(c.guestReadRoots) ? c.guestReadRoots : [])
+    .map((p) => String(p || '').trim())
+    .filter((p) => p.startsWith('/') && !p.includes('\0')))].slice(0, 8)
   const commandKeys = [...new Set([...DELEGATED_COMMANDS, ...Object.keys(c.commandAllow || {}).filter(isDelegatedCommandKey)])]
   c.commandAllow = Object.fromEntries(commandKeys.map((key) => {
     const ids = Array.isArray(c.commandAllow?.[key]) ? c.commandAllow[key] : []
