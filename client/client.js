@@ -2717,7 +2717,7 @@ body[data-ds-dark-theme] .ab-root,.ab-root.ab-dark{--ab-shadow:0 1px 2px rgba(0,
           h(Row, {
             key: 'grr',
             label: '群友轮能读写的额外目录',
-            hint: '一行一个绝对路径。群友轮只能读工作区和这里的目录（软链按真实落点算）；留空 = 默认四条：/root/.dsh/skills、modules-data/local-diary、/root/nbr/cache/nonebot_plugin_parser_lite。主人轮不受此限。',
+            hint: '一行一个绝对路径。群友轮只能读工作区和这里的目录（软链按真实落点算）；留空 = 默认只有 /root/.dsh/skills 与 /root/nbr/cache/nonebot_plugin_parser_lite。要让她读写本地日记就自己加那条。主人轮不受此限。',
           }, f.list('guestReadRoots', { placeholder: '/root/.dsh/skills' })),
           h(Row, { key: 'ta', label: '定时任务那一轮也算主人', hint: '默认关：群里到点跑定时任务时，工具档位沿用最后一条 QQ 消息留下的状态，群友说过话就没有工具。打开后，凡是没有人说话的轮次（定时任务到点、宿主驱动）一律按主人在场算，群上下文和工具可以兼得；代价是她在群里自己发起的轮次也带着主人权限。' }, f.sw('group.timerAsOwner')),
           h(Row, { key: 'cr', label: '能不能看别的群', hint: '只读白名单里的群，一次最多 50 条，主人随时能看。开到「群里也行」后，ta在 A 群的回答全群都看得到；读到的内容也会留在这个会话里。' }, f.choices('group.crossRead', [{ value: 'off', label: '关', desc: '只看当前聊天' }, { value: 'private', label: '私聊可以', desc: '主人，以及私聊里问的人本身在那个群（默认）' }, { value: 'group', label: '群里也行', desc: '再加上群里问的人都在那个群' }])),

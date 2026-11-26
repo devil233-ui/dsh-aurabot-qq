@@ -5,7 +5,6 @@ import { dirname, resolve, sep } from 'node:path'
 /** 工作区之外另外放行的目录（主人 2026-11-26 指定） */
 export const DEFAULT_GUEST_READ_ROOTS = [
   '/root/.dsh/skills',
-  '/root/.dsh/plugins-data/aurabot/modules-data/local-diary',
   '/root/nbr/cache/nonebot_plugin_parser_lite',
 ]
 

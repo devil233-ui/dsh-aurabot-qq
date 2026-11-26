@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { resolveGuestReadPath, resolveGuestWritePath } from '../src/features/guest-read.js'
+import { resolveGuestReadPath, resolveGuestWritePath, DEFAULT_GUEST_READ_ROOTS } from '../src/features/guest-read.js'
 
 function sandbox() {
   const base = mkdtempSync(join(tmpdir(), 'guest-read-'))
@@ -94,4 +94,9 @@ test('写：.. 逃逸拒绝', () => {
     assert.equal(resolveGuestWritePath(s.cfg, '../evil.md').ok, false)
     assert.equal(resolveGuestWritePath(s.cfg, '/tmp/evil.md').ok, false)
   } finally { s.done() }
+})
+
+test('默认可信根不包含本地日记（要就显式加）', () => {
+  assert.ok(!DEFAULT_GUEST_READ_ROOTS.some((p) => p.includes('local-diary')))
+  assert.ok(DEFAULT_GUEST_READ_ROOTS.some((p) => p.includes('nonebot_plugin_parser_lite')))
 })
