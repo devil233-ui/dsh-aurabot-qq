@@ -334,7 +334,7 @@ export const DEFAULTS = {
   },
   // 心情：单标量 0~100（base/半衰期/模型判定）+ 情绪向量（emotions 心情项可配，见 features/mood-emotions.js）。
   // 向量 2026-11-17 从目的引擎下沉到这里：它是「她的心情」，不是「这一轮的目的」，也不该在目的引擎关掉时消失。
-  mood: { enabled: true, halfLifeHours: 3, judge: false, base: 60, emotions: defaultEmotions() }, // base：心情基线（0~100 里算「平常」的那个值）；judge：每轮聊完用模型判一次心情（更准，每轮多一次很短的调用）；关着用关键词；emotions：情绪项（增删改名、正负倾向与强弱）
+  mood: { enabled: true, contextLine: true, halfLifeHours: 3, judge: false, base: 60, emotions: defaultEmotions() }, // base：心情基线（0~100 里算「平常」的那个值）；judge：每轮聊完用模型判一次心情（更准，每轮多一次很短的调用）；关着用关键词；emotions：情绪项（增删改名、正负倾向与强弱）
   // seedHistory：新会话第一次说话时先补最近几条历史（默认关）
   // everyStep：一轮里她分几段说就发几条（默认关 = 只发最后一段）。私聊多是闲聊，连着说的几句可能是不同话题，
   //   只发最后一段会让人以为她只回了一个话题；干活时前面多是工具调用前后的过程话，开着会显得啰嗦
@@ -758,6 +758,8 @@ export function normalize(raw) {
   c.mood.halfLifeHours = num(c.mood.halfLifeHours, 3, 0.1, BIG)
   c.mood.base = num(c.mood.base, 60, 0, 100)
   c.mood.judge = bool(c.mood.judge, false)
+  // 只决定「要不要把心情写进每轮上下文」；关掉不影响心情数值本身，也不影响它对话多话少/表情/延迟的影响
+  c.mood.contextLine = c.mood.contextLine !== false
   // 心情项：坏项/重复键丢弃、一条不剩回落到出厂十项；老的存档里没有这个键时也是十项
   // （normalize 只补缺省，不会把用户删到只剩两项的配置洗回十项）。
   c.mood.emotions = normalizeEmotions(c.mood.emotions)

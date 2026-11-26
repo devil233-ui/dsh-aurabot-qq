@@ -273,6 +273,7 @@ export function createMood({ getConfig, dsh, log }) {
      */
     contextLine(chat) {
       if (!getConfig().mood.enabled) return ''
+      if (getConfig().mood.contextLine === false) return ''
       const s = load()
       const v = current()
       const label = moodLabel(v)

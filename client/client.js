@@ -5092,7 +5092,8 @@ body[data-ds-dark-theme] .ab-root,.ab-root.ab-dark{--ab-shadow:0 1px 2px rgba(0,
             h(Row, { label: '平常是多少', hint: '基线：没人说话时心情会慢慢往这个值靠（默认 60）' }, f.range('mood.base', 10, 90, 1, (v) => v + ' / 100')),
             h(Row, { label: '聊天流水留多久', hint: '默认留 7 天，刚说过的话靠它想起来；0 = 整理完就删；-1 = 永久保留；其他数字 = 留这么多天。留得越久，本机存的聊天原文越多' }, f.num('memory.keepChatlogDays', { min: -1, max: 3650 })),
             h(Row, { label: '整理时合并重复记忆', hint: '同一个人名下说的是一件事的条目并成一条。每个人多一次模型调用，默认关' }, f.sw('memory.mergeGroups')),
-            h(Row, { label: '用模型判断心情', hint: '每轮聊完用模型判一次（能分清开玩笑和真骂、ta主动找你时的心意），更准；每轮多一次很短的模型调用。关着就按关键词' }, f.sw('mood.judge'))),
+            h(Row, { label: '用模型判断心情', hint: '每轮聊完用模型判一次（能分清开玩笑和真骂、ta主动找你时的心意），更准；每轮多一次很短的模型调用。关着就按关键词' }, f.sw('mood.judge')),
+            h(Row, { label: '把心情写进上下文', hint: '关掉后心情照常计算、照常影响话多话少和表情，只是不往每轮对话里塞那句「（你现在心情不错…）」' }, f.sw('mood.contextLine'))),
           historyBlock,
         )
       // 心情页：心情数值 + 此刻的情绪 + ta自己的说话方式
