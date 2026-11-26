@@ -207,8 +207,20 @@ export function createHub({ dsh, getConfig, log, onebot, outbox, stickers, tts, 
   // MCP（fastctx 的 run / replace 就是），名单里没有就漏出去。
   // web_search 只把查询词发出去，动不了这台机器，留下；web_fetch 能访问内网地址、也能读 file://
   // 把本地文件内容带出去，所以收着。
+  // 2026-11-26 扩白名单：原名单只按「能不能动本机」粗分，把只读检索类一起收了（HoyoNews、知识库召回、
+  // 表情检索、查图链路、fastctx 的只读三个），群友说话那一轮她连查资料都不行。补进来的是「只读/只发查询」类：
+  // · web_fetch 能读 file:// 和内网，但与 web_search 同属查资料链路，用户明确要求放（2026-11-26 拍板）
+  // · fastctx 只放 inspect_local_file / grep / glob，replace 能写盘、run 能执行，继续收
+  // · bili 只放看的那几个；set_avatar / set_sign / comment（可能带发布动作）继续收
+  // 新装 MCP 的读接口没在这张表里 = 继续收，宁可漏放不要漏收。
   const GROUP_GUEST_SAFE = [/^ask_user_question$/, /^present$/, /^skill$/, /^todo_write$/, /^recall_memory$/,
-    /^unlag_refresh$/, /^mcp_probe$/, /^list_mcp_resource/, /^read_mcp_resource$/, /^web_search$/, /^mcp__Akasha/]
+    /^unlag_refresh$/, /^mcp_probe$/, /^list_mcp_resource/, /^read_mcp_resource$/, /^web_search$/, /^mcp__Akasha/,
+    /^web_fetch$/, /^read_image$/, /^mcp__HoyoNews/, /^mcp__fastctx__(?:inspect_local_file|grep|glob)$/,
+    /^knowledge_/, /^rss_/, /^(?:meme_|search_meme$)/, /^sticker_find$/,
+    /^bili_(?:watch|cover|frames|danmaku)$/,
+    // 2026-11-26：写工作区之外的路径会跳审批（主人轮实测），群友轮没人应答即失败关闭，
+    // 所以 write/edit/glob/grep 放行；read 仍收——它读文件不触发审批，能直接读 /root/.dsh 下的令牌。
+    /^(?:write|edit|glob|grep)$/]
   const groupGates = new Map() // sessionKey → { agent, off }
   // 宿主认哪些全局工具名：拿一个肯定不存在的名字去问，restrict 会在校验阶段就抛错并列出全表。
   function knownGlobalNames(agent) {

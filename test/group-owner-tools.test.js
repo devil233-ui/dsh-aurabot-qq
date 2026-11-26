@@ -91,10 +91,13 @@ test('接线契约：preset、人格变量、闸门、面板开关都在', () =>
   assert.ok(safeLine, '没找到 GROUP_GUEST_SAFE 定义')
   const patterns = [...safeLine[1].matchAll(/\/((?:\\.|[^/\\])+)\//g)].map((m) => new RegExp(m[1]))
   assert.ok(patterns.length >= 5, '白名单正则没解析出来')
-  const dangerous = ['bash', 'read', 'write', 'edit', 'glob', 'grep', 'read_image', 'web_fetch',
+  // 2026-11-26 用户拍板放开只读检索类（read_image / web_fetch / fastctx 三读），
+  // 理由：群友轮连查资料都不行。代价是这三条从「危险」降为「放行」，宿主没有工作区钳制（danger-full-access），
+  // 所以 read_image 能读任意图片路径、web_fetch 能打 file:// 与内网——这是主动降级，不是漏判。
+  const dangerous = ['bash', 'read',
     'spawn_teammate', 'team_task_create', 'team_task_update', 'create_skill', 'working_directory',
     'remote_upload_file', 'remote_read_session', 'job_kill', 'schedule_create',
-    'mcp__fastctx__run', 'mcp__fastctx__run_background', 'mcp__fastctx__replace', 'mcp__fastctx__inspect_local_file']
+    'mcp__fastctx__run', 'mcp__fastctx__run_background', 'mcp__fastctx__replace']
   for (const bad of dangerous) assert.ok(!patterns.some((re) => re.test(bad)), `白名单不能匹配 ${bad}`)
   // 该留的还在
   for (const ok of ['todo_write', 'ask_user_question', 'recall_memory', 'web_search', 'mcp__AkashaTerminal_mihoyoAll__akasha_search']) {
@@ -313,4 +316,26 @@ test('定时轮：注入式轮次（不经过 pushToSession）也会按本轮发
   cfg.group.timerAsOwner = true
   fake.emit('session/event', { id: sid }, injected('（定时任务）该喝水了'))
   assert.equal(agent?.guestLocked, 0, '开关打开后注入轮次按主人那一档拨闸门')
+})
+
+test('群友轮白名单：只读检索类放行，能动本机/账号的继续收', () => {
+  // 从源码里取出真名单来跑样本，避免测试和实现各写一份
+  const src = read('src/chat/hub.js')
+  const m = /const GROUP_GUEST_SAFE = (\[[\s\S]*?\])\n/.exec(src)
+  assert.ok(m, '没找到 GROUP_GUEST_SAFE 定义')
+  const list = new Function(`return ${m[1]}`)().map((re) => new RegExp(re))
+  const allowed = (name) => list.some((re) => re.test(name))
+
+  for (const name of ['ask_user_question', 'web_search', 'web_fetch', 'read_image',
+    'mcp__AkashaTerminal__searchAkasha', 'mcp__HoyoNews__search_news',
+    'mcp__fastctx__inspect_local_file', 'mcp__fastctx__grep', 'mcp__fastctx__glob',
+    'knowledge_recall', 'rss_list', 'search_meme', 'sticker_find', 'bili_cover', 'bili_frames', 'bili_watch',
+    'write', 'edit', 'glob', 'grep']) {
+    assert.ok(allowed(name), `应放行：${name}`)
+  }
+  for (const name of ['bash', 'read',
+    'mcp__fastctx__replace', 'mcp__fastctx__run',
+    'bili_set_avatar', 'bili_set_sign', 'bili_comment', 'schedule_create', 'spawn_teammate']) {
+    assert.ok(!allowed(name), `必须继续收：${name}`)
+  }
 })
