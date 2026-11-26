@@ -64,6 +64,7 @@
                   thresholdChars: 3072
                   headChars: 2048
                   tailChars: 768
+                disabled: true
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -122,6 +123,7 @@
                   thresholdChars: 3072
                   headChars: 2048
                   tailChars: 768
+                disabled: true
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -181,6 +183,7 @@
                   thresholdChars: 3072
                   headChars: 2048
                   tailChars: 768
+                disabled: true
     - id: preset-aurabot-social
       name: '@deepseek-ai/dsh-agent-preset'
       config:
@@ -267,6 +270,7 @@
                   thresholdChars: 3072
                   headChars: 2048
                   tailChars: 768
+                disabled: true
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
@@ -327,3 +331,4 @@
                   thresholdChars: 3072
                   headChars: 2048
                   tailChars: 768
+                disabled: true
