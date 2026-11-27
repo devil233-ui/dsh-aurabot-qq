@@ -67,6 +67,8 @@
                 disabled: true
           - id: tool-todo
             name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
           - id: tool-goal
             name: '@deepseek-ai/dsh-tool-goal'
           - id: tool-web
@@ -130,6 +132,8 @@
                 disabled: true
           - id: tool-todo
             name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
           - id: tool-goal
             name: '@deepseek-ai/dsh-tool-goal'
           - id: tool-web
@@ -281,6 +285,8 @@
                 disabled: true
           - id: tool-todo
             name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
           - id: tool-goal
             name: '@deepseek-ai/dsh-tool-goal'
           - id: tool-web
