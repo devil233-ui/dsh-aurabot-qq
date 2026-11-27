@@ -54,7 +54,7 @@
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
                 # 100 万窗口按预算约 80 万算，45% 触发、压完保底约 24 万原文，中间落差比原来小得多。
                 config:
-                  thresholdRatio: 0.45
+                  thresholdRatio: 0.9
                   retainRatio: 0.3
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
@@ -128,7 +128,7 @@
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
                 # 100 万窗口按预算约 80 万算，45% 触发、压完保底约 24 万原文，中间落差比原来小得多。
                 config:
-                  thresholdRatio: 0.45
+                  thresholdRatio: 0.9
                   retainRatio: 0.3
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
@@ -203,7 +203,7 @@
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
                 # 100 万窗口按预算约 80 万算，45% 触发、压完保底约 24 万原文，中间落差比原来小得多。
                 config:
-                  thresholdRatio: 0.45
+                  thresholdRatio: 0.9
                   retainRatio: 0.3
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
@@ -242,7 +242,7 @@
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
                 # 100 万窗口按预算约 80 万算，45% 触发、压完保底约 24 万原文，中间落差比原来小得多。
                 config:
-                  thresholdRatio: 0.45
+                  thresholdRatio: 0.9
                   retainRatio: 0.3
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
@@ -290,7 +290,7 @@
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
                 # 100 万窗口按预算约 80 万算，45% 触发、压完保底约 24 万原文，中间落差比原来小得多。
                 config:
-                  thresholdRatio: 0.45
+                  thresholdRatio: 0.9
                   retainRatio: 0.3
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
@@ -366,7 +366,7 @@
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
                 # 100 万窗口按预算约 80 万算，45% 触发、压完保底约 24 万原文，中间落差比原来小得多。
                 config:
-                  thresholdRatio: 0.45
+                  thresholdRatio: 0.9
                   retainRatio: 0.3
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
