@@ -12,6 +12,7 @@
     - id: aurabot
       name: dsh-aurabot-qq
     - id: preset-aurabot-private
+
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: aurabot-private
@@ -49,6 +50,7 @@
             config:
               - id: compaction-basic
                 name: '@deepseek-ai/dsh-compaction-basic'
+                disabled: true
                 # DSH 默认窗口的 80% 才压缩：DeepSeek V4 这类 100 万窗口要长到约 80 万 token 才压一次，
                 # 之前每轮都把几十万 token 的历史整段重发，越聊越慢、越聊越贵；一度收到 25% 就压缩、只留 5% 原文，
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
@@ -86,6 +88,7 @@
               fetch: true
               searchTimeoutMs: 60000
     - id: preset-aurabot-private-long
+
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: aurabot-private-long
@@ -123,6 +126,7 @@
             config:
               - id: compaction-basic
                 name: '@deepseek-ai/dsh-compaction-basic'
+                disabled: true
                 # DSH 默认窗口的 80% 才压缩：DeepSeek V4 这类 100 万窗口要长到约 80 万 token 才压一次，
                 # 之前每轮都把几十万 token 的历史整段重发，越聊越慢、越聊越贵；一度收到 25% 就压缩、只留 5% 原文，
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
@@ -168,6 +172,7 @@
     # 不带人格（DSH 默认编程助手身份更适合执行自足任务书），只给本机操作工具；
     # 父级是 aurabot-social（零本地工具），子级不显式指定就会继承它、拿不到 shell——手机任务就废了。
     - id: preset-aurabot-subagent
+
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: aurabot-subagent
@@ -215,6 +220,7 @@
                   tailChars: 768
                 disabled: true
     - id: preset-aurabot-social
+
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: aurabot-social
@@ -237,6 +243,7 @@
             config:
               - id: compaction-basic
                 name: '@deepseek-ai/dsh-compaction-basic'
+                disabled: true
                 # DSH 默认窗口的 80% 才压缩：DeepSeek V4 这类 100 万窗口要长到约 80 万 token 才压一次，
                 # 之前每轮都把几十万 token 的历史整段重发，越聊越慢、越聊越贵；一度收到 25% 就压缩、只留 5% 原文，
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
@@ -250,6 +257,7 @@
     # 人格按群聊写（group-owner），工具照 private 配；hub 在别人说话那一轮用 tools.restrict
     # 把核心工具收走，只留插件自己的社交工具，所以这一档不能直接复用 full。
     - id: preset-aurabot-group-owner
+
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: aurabot-group-owner
@@ -285,6 +293,7 @@
             config:
               - id: compaction-basic
                 name: '@deepseek-ai/dsh-compaction-basic'
+                disabled: true
                 # DSH 默认窗口的 80% 才压缩：DeepSeek V4 这类 100 万窗口要长到约 80 万 token 才压一次，
                 # 之前每轮都把几十万 token 的历史整段重发，越聊越慢、越聊越贵；一度收到 25% 就压缩、只留 5% 原文，
                 # 结果压得太勤、丢得太狠，压缩后的记忆很碎。2026-11-24 调整为 45% 触发、保留 30% 原文：
@@ -332,6 +341,7 @@
     # 第一个 social，插前面会打挂那条切片断言。首期不给 bash / pwsh（lethal trifecta，§4.7 选 A）：
     # 只留 fs / fs-search / compaction，不带任何 QQ 社交工具。人格照 social（她还是她，只是换了手）。
     - id: preset-aurabot-autotelic
+
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: aurabot-autotelic
