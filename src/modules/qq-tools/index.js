@@ -346,7 +346,10 @@ export default {
           return { ok: true, sentTypes, queuedTypes, message: sent + fallback + mentions }
         },
       }))
-      return tools
+      // qq_read_local / qq_write_local 只是「群友轮的受限读写通道」：
+      // 私聊里她本来就有原生 read/write 全量工具；群里主人/白名单轮工具也全开（2026-11-27 用户口径）。
+      const guestOnly = chat.kind === 'group' && !hub.turnSendersAllTools?.(sessionId)
+      return guestOnly ? tools : tools.filter((t) => t.name !== 'qq_read_local' && t.name !== 'qq_write_local')
     })
     return {}
   },
