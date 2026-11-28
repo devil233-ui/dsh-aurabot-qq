@@ -23,11 +23,17 @@
             name: '@deepseek-ai/dsh-persona'
             config:
               prefix: "{{aurabot_persona}}\n\n{{aurabot_rules_private}}"
-              # 人格独占系统提示词：不带 DSH 那一大段编程助手身份和工具指南（实测私聊从 1~4 分钟一轮降下来）。
-              # 工具照样挂着，模型靠工具定义本身就会用。
-              complete: true
+              # 保留标准模式的工具指引与运行时上下文；身份优先级在规则段里显式压顶
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
           - id: time-context
             name: '@deepseek-ai/dsh-time-context'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-bash
             name: '@deepseek-ai/dsh-tool-bash'
             disabled: !!js process.platform === 'win32'
@@ -88,11 +94,17 @@
             name: '@deepseek-ai/dsh-persona'
             config:
               prefix: "{{aurabot_persona}}\n\n{{aurabot_rules_private}}"
-              # 人格独占系统提示词：不带 DSH 那一大段编程助手身份和工具指南（实测私聊从 1~4 分钟一轮降下来）。
-              # 工具照样挂着，模型靠工具定义本身就会用。
-              complete: true
+              # 保留标准模式的工具指引与运行时上下文；身份优先级在规则段里显式压顶
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
           - id: time-context
             name: '@deepseek-ai/dsh-time-context'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-bash
             name: '@deepseek-ai/dsh-tool-bash'
             disabled: !!js process.platform === 'win32'
@@ -243,9 +255,17 @@
             name: '@deepseek-ai/dsh-persona'
             config:
               prefix: "{{aurabot_persona}}\n\n{{aurabot_rules_group_owner}}"
-              complete: true
+              # 保留标准模式的工具指引与运行时上下文；身份优先级在规则段里显式压顶
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
           - id: time-context
             name: '@deepseek-ai/dsh-time-context'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
           - id: tool-bash
             name: '@deepseek-ai/dsh-tool-bash'
             disabled: !!js process.platform === 'win32'
